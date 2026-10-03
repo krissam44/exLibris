@@ -1,0 +1,59 @@
+@* Le gabarit commun des dialogues, pendant de DialogueBase dans le WPF :
+   titre et aide en tête, le formulaire au milieu, pied à deux boutons —
+   « Fermer » en rouge à gauche de l'action, l'action en ardoise à droite.
+
+   Le formulaire est choisi d'après le TYPE du ViewModel reçu : le gabarit
+   ne connaît aucun écran, comme le ContentPresenter du WPF. *@
+
+<MudDialog Class="dialogue-exlibris">
+    <TitleContent>
+        <div class="titre-carte">@Titre</div>
+        @if (!string.IsNullOrWhiteSpace(Aide))
+        {
+            <div class="aide">@Aide</div>
+        }
+    </TitleContent>
+
+    <DialogContent>
+        @* Le formulaire HTML porte le geste du WPF : Entrée valide, sauf dans le
+           commentaire et sauf pour choisir une suggestion — c'est wwwroot/js/
+           exlibris.js qui en décide, d'après la classe « formulaire-dialogue ».
+           Échap ferme (option du dialogue). *@
+        <form id="@_idFormulaire" class="formulaire-dialogue" @onsubmit="Valider" autocomplete="off">
+            <DynamicComponent Type="TypeVue" Parameters="@(new Dictionary<string, object> { ["Vm"] = Formulaire })" />
+        </form>
+    </DialogContent>
+
+    <DialogActions>
+        @* « bouton-annuler » : c'est lui que clique Échap (wwwroot/js/exlibris.js). *@
+        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="Annuler" Class="bouton-annuler">@LibelleAnnuler</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit"
+                   form="@_idFormulaire" Class="mr-2">
+            @LibelleValider
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialogue { get; set; } = default!;
+
+    [Parameter] public string Titre { get; set; } = "";
+    [Parameter] public string Aide { get; set; } = "";
+    [Parameter] public string LibelleValider { get; set; } = "Enregistrer";
+    [Parameter] public string LibelleAnnuler { get; set; } = "Fermer";
+
+    /// <summary>Le composant Razor du formulaire (LivreFormulaire, …).</summary>
+    [Parameter, EditorRequired] public Type TypeVue { get; set; } = default!;
+
+    /// <summary>Son ViewModel, transmis comme paramètre « Vm ».</summary>
+    [Parameter, EditorRequired] public object Formulaire { get; set; } = default!;
+
+    private readonly string _idFormulaire = $"f{Guid.NewGuid():N}";
+
+    // Le contrôle de la saisie n'est PAS fait ici, comme dans le WPF : le
+    // gabarit ne connaît pas les règles du formulaire. C'est l'appelant qui
+    // rouvre le dialogue tant que le titre manque (BibliothequeViewModel).
+    private void Valider() => Dialogue.Close(DialogResult.Ok(true));
+
+    private void Annuler() => Dialogue.Cancel();
+}

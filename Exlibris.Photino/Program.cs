@@ -39,7 +39,19 @@ internal static class Program
         if (configuration["Syncfusion:LicenseKey"] is { Length: > 0 } cle)
             Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(cle);
 
-        var builder = PhotinoBlazorAppBuilder.CreateDefault(args);
+        // Le dossier des données se déplace par la configuration
+        // (Exlibris__DossierDonnees) : c'est ce qui permet d'essayer
+        // l'application sur une COPIE de la base, sans jamais toucher la vraie.
+        var dossierDonnees = configuration["Exlibris:DossierDonnees"] is { Length: > 0 } dossier
+            ? dossier
+            : Composition.DossierDonnees();
+
+        // Les couvertures doivent être connues AVANT la construction : Photino
+        // reçoit sa source de fichiers à la création (voir Services.Couvertures).
+        var couvertures = new Services.Couvertures(Path.Combine(dossierDonnees, "couvertures"));
+
+        var builder = PhotinoBlazorAppBuilder.CreateDefault(
+            couvertures.SourceDeFichiers(Path.Combine(AppContext.BaseDirectory, "wwwroot")), args);
         var services = builder.Services;
 
         services.AddLogging();
@@ -47,14 +59,8 @@ internal static class Program
         services.AddSyncfusionBlazor();
         services.AddSingleton<ISyncfusionStringLocalizer, Services.SyncfusionFrancais>();
 
-        // Le dossier des données se déplace par la configuration
-        // (Exlibris__DossierDonnees) : c'est ce qui permet d'essayer
-        // l'application sur une COPIE de la base, sans jamais toucher la vraie.
-        services.AddExlibrisDonnees(
-            configuration["Exlibris:DossierDonnees"] is { Length: > 0 } dossier
-                ? dossier
-                : Composition.DossierDonnees(),
-            configuration["Lirevia:ApiUrl"] ?? string.Empty);
+        services.AddExlibrisDonnees(dossierDonnees, configuration["Lirevia:ApiUrl"] ?? string.Empty);
+        services.AddSingleton(couvertures);
 
         // ----- Les écrans et les dialogues
         //
@@ -73,6 +79,15 @@ internal static class Program
 
         var app = builder.Build();
         Composition.InitialiserReferentiels(app.Services);
+
+        // Le dossier servi doit être CELUI où CouvertureDepot range les images.
+        // Les deux sont déduits du dossier des données par deux chemins ; s'ils
+        // divergeaient un jour, toutes les couvertures disparaîtraient de
+        // l'écran sans la moindre erreur. On préfère l'arrêt net au démarrage.
+        var depot = app.Services.GetRequiredService<CouvertureDepot>();
+        if (!string.Equals(Path.GetFullPath(depot.Dossier), couvertures.Dossier, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException(
+                $"Dossier des couvertures incohérent : {depot.Dossier} ≠ {couvertures.Dossier}");
 
         app.MainWindow
             // Photino trace par défaut chaque échange avec la WebView : des

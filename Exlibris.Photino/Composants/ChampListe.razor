@@ -1,0 +1,36 @@
+@* Une liste OUVERTE : elle propose l'existant, et la frappe crée le reste —
+   l'équivalent du ComboBox IsEditable du WPF (style ChampListe). Une valeur
+   inconnue est créée à l'enregistrement, sans passer par un écran de
+   paramétrage au milieu d'une saisie.
+
+   La valeur suit la FRAPPE, et pas seulement le choix dans la liste : Entrée
+   enregistre le formulaire, et une valeur qui n'aurait été prise qu'en
+   quittant le champ serait perdue sur le dernier champ tapé. *@
+
+<MudAutocomplete T="string" Label="@Label" Value="@Value" Text="@Value"
+                 TextChanged="SurFrappe" ValueChanged="SurFrappe"
+                 SearchFunc="Chercher" MaxItems="null"
+                 CoerceText="false" CoerceValue="true" ResetValueOnEmptyText="true"
+                 Variant="Variant.Outlined" Margin="Margin.Dense"
+                 ShowProgressIndicator="false" Clearable="false" Style="@Style" />
+
+@code {
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string Value { get; set; } = "";
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public IReadOnlyList<string> Elements { get; set; } = [];
+    [Parameter] public string? Style { get; set; }
+
+    private Task SurFrappe(string? texte)
+    {
+        texte ??= string.Empty;
+        return texte == Value ? Task.CompletedTask : ValueChanged.InvokeAsync(texte);
+    }
+
+    // Recherche « contient », sans casse : on retrouve « Le Lombard » en tapant
+    // « lomb ». Sans saisie, toute la liste — c'est ce que montre la flèche.
+    private Task<IEnumerable<string>> Chercher(string? saisie, CancellationToken _) =>
+        Task.FromResult(string.IsNullOrWhiteSpace(saisie)
+            ? Elements
+            : Elements.Where(e => e.Contains(saisie.Trim(), StringComparison.CurrentCultureIgnoreCase)));
+}

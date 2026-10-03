@@ -38,6 +38,12 @@ public static class Theme
             LinesDefault = "#DEE2E6",
             Divider = "#DEE2E6",
         },
+        // Boutons en casse normale, comme le WPF : « Choisir une image… » en
+        // majuscules prenait deux lignes dans la colonne de la couverture.
+        Typography = new Typography
+        {
+            Button = new ButtonTypography { TextTransform = "none", FontWeight = "500" },
+        },
         LayoutProperties = new LayoutProperties
         {
             // 176 px ouvert, comme le menu du WPF ; réduit, la largeur d'une icône.

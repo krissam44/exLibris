@@ -1,0 +1,25 @@
+@* La couverture en grand. La taille se déduit de l'ÉCRAN, pas de l'image —
+   même règle que le WPF : 80 % de la hauteur disponible, la largeur suivant
+   les proportions RÉELLES de l'image (une BD à l'italienne n'a pas le format
+   d'un poche). Ici, c'est le CSS qui le fait. *@
+
+<MudDialog Class="dialogue-exlibris">
+    <TitleContent>
+        <div class="titre-carte">@Titre</div>
+    </TitleContent>
+    <DialogContent>
+        <img src="@Url" alt="@Titre" class="couverture-grande" />
+    </DialogContent>
+    <DialogActions>
+        @* « bouton-annuler » : c'est lui que clique Échap (wwwroot/js/exlibris.js). *@
+        <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="() => Dialogue.Close()" Class="mr-2 bouton-annuler">
+            Fermer
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialogue { get; set; } = default!;
+    [Parameter] public string Titre { get; set; } = "";
+    [Parameter, EditorRequired] public string Url { get; set; } = "";
+}

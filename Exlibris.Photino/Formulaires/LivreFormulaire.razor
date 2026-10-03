@@ -1,0 +1,138 @@
+@inherits FormulaireBase<LivreFormulaireViewModel>
+@inject Services.Couvertures Couvertures
+
+@* La saisie d'un ouvrage — pendant de LivreFormulaireVue.xaml, même ordre de
+   champs, qui est celui de la SAISIE et non celui de la base : l'ISBN d'abord
+   (un code-barres trouvé remplit le reste), puis l'identité de l'ouvrage, son
+   rangement, et la série — descendue à dessein, elle ne concerne que la bande
+   dessinée et reste vide sur un roman.
+
+   Les champs texte sont « Immediate » : la valeur suit la frappe, sans quoi
+   Entrée (qui enregistre) perdrait ce qui vient d'être tapé dans le dernier
+   champ. *@
+
+<div class="formulaire-livre">
+
+    <div class="saisie">
+
+        @* ISBN, année et la recherche en ligne. *@
+        <div class="ligne-isbn">
+            <MudTextField T="string" Label="ISBN" Value="Vm.Isbn" ValueChanged="v => Vm.Isbn = v ?? string.Empty"
+                          Immediate="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="champ-isbn" />
+            <MudTextField T="int?" Label="Année" Value="Vm.Annee" ValueChanged="v => Vm.Annee = v"
+                          Immediate="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="champ-annee" />
+            @* Grisé pendant l'appel : une double frappe lancerait deux recherches
+               dont la plus lente écraserait le résultat de l'autre. *@
+            <MudButton Variant="Variant.Filled" Color="Color.Default" Disabled="Vm.RechercheEnCours"
+                       StartIcon="@Icons.Material.Filled.TravelExplore"
+                       OnClick="() => Vm.RechercherCommand.ExecuteAsync(null)">
+                Rechercher
+            </MudButton>
+            @if (Vm.RechercheEnCours)
+            {
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Primary" />
+            }
+            <span class="legende">@Vm.Avertissement</span>
+        </div>
+        @if (Vm.MessageRecherche.Length > 0)
+        {
+            <div class="aide mb-2">@Vm.MessageRecherche</div>
+        }
+
+        <div class="bloc">
+            <MudTextField T="string" Label="Titre *" Value="Vm.Titre" ValueChanged="v => Vm.Titre = v ?? string.Empty"
+                          Immediate="true" MaxLength="255" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          AutoFocus="true" />
+            @if (Vm.Erreur.Length > 0)
+            {
+                <div class="message-erreur">@Vm.Erreur</div>
+            }
+        </div>
+
+        <div class="bloc">
+            <MudTextField T="string" Label="Auteurs" Value="Vm.Auteurs" ValueChanged="v => Vm.Auteurs = v ?? string.Empty"
+                          Immediate="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <div class="aide">Séparés par une virgule. Le rôle se précise plus tard, sur les séries qui comptent.</div>
+        </div>
+
+        <div class="deux-colonnes">
+            <ChampListe Label="Éditeur" Value="@Vm.Editeur" ValueChanged="v => Vm.Editeur = v" Elements="Vm.Editeurs" />
+            <ChampListe Label="Genre" Value="@Vm.Genre" ValueChanged="v => Vm.Genre = v" Elements="Vm.Genres" />
+        </div>
+
+        @* « Ma catégorie » suit immédiatement le genre : c'est côte à côte que
+           la différence se comprend. Elle se remplit d'elle-même quand elle est
+           vide (LivreFormulaireViewModel.OnGenreChanged). *@
+        <div class="deux-colonnes">
+            <ChampListe Label="Ma catégorie" Value="@Vm.Classement" ValueChanged="v => Vm.Classement = v" Elements="Vm.Classements" />
+            <ChampListe Label="Rangement" Value="@Vm.Rangement" ValueChanged="v => Vm.Rangement = v" Elements="Vm.Rangements" />
+        </div>
+        <div class="aide bloc">Ces deux listes se complètent en tapant : une valeur inconnue est créée à l'enregistrement.</div>
+
+        @* Toute la ligne disparaît quand le réglage est éteint : une case grisée
+           ferait croire à un champ inaccessible. *@
+        @if (Vm.ProprietairesActifs)
+        {
+            <div class="bloc">
+                <ChampListe Label="Propriétaire" Value="@Vm.Proprietaire" ValueChanged="v => Vm.Proprietaire = v"
+                            Elements="Vm.Proprietaires" Style="width: 300px" />
+            </div>
+        }
+
+        <div class="serie-tome">
+            <ChampListe Label="Série" Value="@Vm.Serie" ValueChanged="v => Vm.Serie = v" Elements="Vm.Series" />
+            <MudTextField T="int?" Label="Tome" Value="Vm.NumeroTome" ValueChanged="v => Vm.NumeroTome = v"
+                          Immediate="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </div>
+
+        <div class="ligne-lecture">
+            <MudCheckBox T="bool" Label="Lu" Value="Vm.Lu" ValueChanged="v => Vm.Lu = v" Dense="true" />
+            @* Liste FERMÉE : on choisit dans le lot, on n'invente pas. *@
+            <MudSelect T="int?" Label="Appréciation" Value="Vm.Appreciation" ValueChanged="v => Vm.Appreciation = v"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Style="width: 130px">
+                <MudSelectItem T="int?" Value="null">—</MudSelectItem>
+                @for (var note = 1; note <= 5; note++)
+                {
+                    var n = note;
+                    <MudSelectItem T="int?" Value="n">@n</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        @* Le seul champ où l'on écrit une phrase : plusieurs lignes, et Entrée
+           y passe à la ligne au lieu d'enregistrer. *@
+        <MudTextField T="string" Label="Commentaire" Value="Vm.Commentaire" ValueChanged="v => Vm.Commentaire = v ?? string.Empty"
+                      Immediate="true" Lines="3"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" spellcheck="true" />
+    </div>
+
+    @* La couverture, à DROITE : elle se regarde, elle ne se remplit pas. *@
+    <div class="colonne-couverture">
+        <button type="button" class="vignette" title="Cliquer pour agrandir"
+                @onclick="() => Vm.AgrandirCouvertureCommand.ExecuteAsync(null)">
+            @if (UrlCouverture is { } url)
+            {
+                <img src="@url" alt="Couverture" />
+            }
+            else
+            {
+                <span class="aide">Pas de couverture</span>
+            }
+        </button>
+        @* L'invitation n'apparaît que s'il y a quelque chose à agrandir. *@
+        @if (UrlCouverture is not null)
+        {
+            <div class="aide centre">Cliquer pour agrandir</div>
+        }
+        @* Le chemin de secours pour les albums sans code-barres, qu'aucune
+           source en ligne ne connaît. *@
+        <MudButton Variant="Variant.Filled" Color="Color.Default" Size="Size.Small" FullWidth="true" Class="mt-2"
+                   OnClick="() => Vm.ChoisirCouvertureCommand.ExecuteAsync(null)">
+            Choisir une image…
+        </MudButton>
+    </div>
+</div>
+
+@code {
+    private string? UrlCouverture => Couvertures.Url(Vm.CheminCouverture);
+}

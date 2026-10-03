@@ -12,39 +12,88 @@ namespace Exlibris.Photino.Services;
 ///
 /// Doit être enregistré en <c>scoped</c> : voir Program.cs.
 /// </summary>
-public sealed class DialogueService(IDialogService dialogues, PhotinoWindow fenetre) : IDialogueService
+public sealed class DialogueService(IDialogService dialogues, PhotinoWindow fenetre, Couvertures couvertures)
+    : IDialogueService
 {
+    /// <summary>
+    /// Les options communes : on ne ferme PAS un formulaire en cliquant à côté.
+    /// Une saisie de dix champs perdue sur un clic égaré est exactement ce
+    /// qu'un dialogue modal du WPF ne permettait pas. Échap, en revanche,
+    /// ferme — c'était le bouton IsCancel du WPF.
+    /// </summary>
+    private static DialogOptions Options(MaxWidth largeur) => new()
+    {
+        MaxWidth = largeur,
+        FullWidth = true,
+        CloseOnEscapeKey = true,
+        BackdropClick = false,
+        NoHeader = false,
+        CloseButton = false,
+    };
+
     public async Task<bool> SaisirAsync(string titre, string aide, object formulaire, string libelleValider = "Enregistrer")
     {
         // La correspondance ViewModel → vue Razor, pendant de VueDe() dans le
-        // WPF. Les formulaires arrivent au fil des étapes du portage ; d'ici là,
-        // on le DIT plutôt que d'ouvrir un dialogue vide.
-        var etape = formulaire switch
+        // WPF. Un formulaire pas encore porté le DIT plutôt que d'ouvrir un
+        // dialogue vide.
+        var vue = formulaire switch
         {
-            LivreFormulaireViewModel => 3,
-            _ => 4,
+            LivreFormulaireViewModel => typeof(Formulaires.LivreFormulaire),
+            _ => null,
         };
 
-        await dialogues.ShowMessageBoxAsync(titre,
-            $"Ce formulaire n'est pas encore porté dans la version Photino (étape {etape}). "
-            + "Il reste disponible dans la version WPF.",
-            yesText: "Fermer");
-        return false;
+        if (vue is null)
+        {
+            await dialogues.ShowMessageBoxAsync(titre,
+                "Ce formulaire n'est pas encore porté dans la version Photino (étape 4). "
+                + "Il reste disponible dans la version WPF.",
+                yesText: "Fermer");
+            return false;
+        }
+
+        var parametres = new DialogParameters<Dialogues.FormulaireDialogue>
+        {
+            { d => d.Titre, titre },
+            { d => d.Aide, aide },
+            { d => d.LibelleValider, libelleValider },
+            { d => d.TypeVue, vue },
+            { d => d.Formulaire, formulaire },
+        };
+
+        // 820 px dans le WPF : Medium (960) au plus, le formulaire et sa
+        // couverture y tiennent sans défilement horizontal.
+        var dialogue = await dialogues.ShowAsync<Dialogues.FormulaireDialogue>(null, parametres, Options(MaxWidth.Medium));
+        var resultat = await dialogue.Result;
+        return resultat is { Canceled: false };
     }
 
     public async Task<bool> ConfirmerAsync(string titre, string question, string libelleValider = "Confirmer")
     {
         var reponse = await dialogues.ShowMessageBoxAsync(
             titre, question, yesText: libelleValider, cancelText: "Annuler",
-            options: new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+            options: Options(MaxWidth.Small));
 
         // null = fermé par Échap ou par la croix : c'est un refus, comme dans le WPF.
         return reponse == true;
     }
 
-    public Task AfficherImageAsync(string titre, string chemin) =>
-        // Arrive avec le formulaire d'ouvrage, qui est le seul à l'employer.
-        Task.CompletedTask;
+    public async Task AfficherImageAsync(string titre, string chemin)
+    {
+        if (couvertures.Url(chemin) is not { } url) return;
+
+        var parametres = new DialogParameters<Dialogues.ImageDialogue>
+        {
+            { d => d.Titre, titre },
+            { d => d.Url, url },
+        };
+
+        // Largeur libre : c'est l'image, dimensionnée sur la HAUTEUR de l'écran,
+        // qui décide (voir ImageDialogue).
+        // Rien à perdre ici : un clic à côté referme.
+        var options = Options(MaxWidth.False) with { FullWidth = false, BackdropClick = true };
+
+        await (await dialogues.ShowAsync<Dialogues.ImageDialogue>(null, parametres, options)).Result;
+    }
 
     public Task<string?> ChoisirImageAsync() =>
         ChoisirFichierAsync("Choisir une couverture",
