@@ -75,6 +75,33 @@ html, body {
     opacity: 0.95;
 }
 
+/* ---------- Pages pleine hauteur (grilles) ----------
+   La carte occupe toute la zone de travail, et la grille tout ce qui reste
+   dans la carte : c'est ce qui permet à SfGrid de faire défiler ses lignes
+   à l'intérieur, au lieu d'allonger la page entière. */
+.page-pleine {
+    height: calc(100vh - var(--mud-appbar-height) - var(--hauteur-pied) - 32px);
+    display: flex;
+    flex-direction: column;
+}
+
+.page-pleine .zone-grille {
+    flex: 1;
+    min-height: 0;
+}
+
+.barre-filtres {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.liste-colonnes {
+    padding: 10px 16px;
+    min-width: 190px;
+}
+
 /* ---------- Cartes : l'équivalent du style « Carte » du WPF ---------- */
 .carte {
     padding: 16px;

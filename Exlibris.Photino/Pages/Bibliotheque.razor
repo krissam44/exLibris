@@ -1,3 +1,185 @@
 @page "/bibliotheque"
+@inherits VueBase<BibliothequeViewModel>
+@using System.Collections.Specialized
+@using Exlibris.Shared.Modeles
+@using Syncfusion.Blazor.Grids
 
-<AVenir Titre="Bibliothèque" Etape="2" />
+<MudPaper Elevation="1" Class="carte page-pleine">
+
+    @* Barre de filtres, calquée sur le WPF (lui-même calqué sur le Catalogue de
+       Lirevia) : recherche à gauche, actions à droite, tout sur le même axe. *@
+    <div class="barre-filtres">
+        <MudTextField T="string" Value="Vm.Recherche" ValueChanged="v => Vm.Recherche = v ?? string.Empty"
+                      Label="Rechercher (titre, série, auteur, ISBN)"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true"
+                      DebounceInterval="250" Clearable="true"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Style="max-width: 420px" />
+
+        <MudSpacer />
+
+        @* Une liste à cocher, comme dans le WPF : on vient y cocher deux cases et
+           retourner à la liste — rien à valider. *@
+        <MudMenu Label="Colonnes" Variant="Variant.Filled" Color="Color.Default"
+                 StartIcon="@Icons.Material.Filled.ViewColumn" title="Choisir les colonnes affichées"
+                 AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft">
+            <div class="liste-colonnes" @onclick:stopPropagation="true">
+                <div class="legende mb-1">Colonnes affichées</div>
+                @foreach (var colonne in _colonnes.Proposees)
+                {
+                    <div @key="colonne.Cle">
+                        <MudCheckBox T="bool" Value="colonne.Visible" Dense="true" Size="Size.Small"
+                                     Disabled="colonne.Verrouille"
+                                     ValueChanged="v => _colonnes.Basculer(colonne, v)"
+                                     Label="@colonne.Libelle" />
+                    </div>
+                }
+            </div>
+        </MudMenu>
+
+        @* Modifier et Supprimer se grisent sans sélection : le bouton dit ce qui
+           est possible, plutôt que d'échouer après le clic. *@
+        <MudButton Variant="Variant.Filled" Color="Color.Default"
+                   Disabled="Vm.Selection is null" OnClick="() => Vm.ModifierCommand.ExecuteAsync(null)">
+            Modifier
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error"
+                   Disabled="Vm.Selection is null" OnClick="() => Vm.SupprimerCommand.ExecuteAsync(null)">
+            Supprimer
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   OnClick="() => Vm.NouvelOuvrageCommand.ExecuteAsync(null)">
+            Nouvel ouvrage
+        </MudButton>
+    </div>
+
+    <div class="zone-grille">
+        @* La pagination porte sur la collection ENTIÈRE, tri et filtres
+           compris — c'est le comportement par défaut de SfGrid, que le WPF
+           devait obtenir avec EnableGridPaging. PageSize à 50, comme le WPF. *@
+        <SfGrid @ref="_grille" TValue="Livre" DataSource="Lignes" Height="100%" Width="100%"
+                AllowPaging="true" AllowSorting="true" AllowFiltering="true" AllowResizing="true"
+                EnableHover="true">
+            <GridEvents TValue="Livre" RowSelected="SurSelection" RowDeselected="SurDeselection"
+                        OnRecordDoubleClick="SurDoubleClic" />
+            <GridPageSettings PageSize="50" PageCount="7" />
+            <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Excel" />
+            <GridSelectionSettings Mode="Syncfusion.Blazor.Grids.SelectionMode.Row" Type="SelectionType.Single" />
+            <GridColumns>
+                @* TitreComplet, et non Titre : « La magicienne trahie » seul ne dit
+                   ni la série ni le rang. *@
+                <GridColumn Field="@nameof(Livre.TitreComplet)" HeaderText="Titre" MinWidth="200"
+                            Visible="@_colonnes.EstVisible(nameof(Livre.TitreComplet))" />
+                <GridColumn Field="@nameof(Livre.Auteurs)" HeaderText="Auteurs" Width="200"
+                            Visible="@_colonnes.EstVisible(nameof(Livre.Auteurs))" />
+                <GridColumn Field="@nameof(Livre.EditeurNom)" HeaderText="Éditeur" Width="150"
+                            Visible="@_colonnes.EstVisible(nameof(Livre.EditeurNom))" />
+                <GridColumn Field="@nameof(Livre.GenreNom)" HeaderText="Genre" Width="130"
+                            Visible="@_colonnes.EstVisible(nameof(Livre.GenreNom))" />
+                <GridColumn Field="@nameof(Livre.ClassementNom)" HeaderText="Ma catégorie" Width="130"
+                            Visible="@_colonnes.EstVisible(nameof(Livre.ClassementNom))" />
+                <GridColumn Field="@nameof(Livre.Rangement)" HeaderText="Rangement" Width="160"
+                            Visible="@_colonnes.EstVisible(nameof(Livre.Rangement))" />
+                <GridColumn Field="@nameof(Livre.ProprietaireNom)" HeaderText="Propriétaire" Width="120"
+                            Visible="@_colonnes.EstVisible(nameof(Livre.ProprietaireNom))" />
+                @* Année CENTRÉE, en-tête compris : une année a toujours quatre
+                   chiffres, l'alignement à droite ne fait rien gagner. *@
+                <GridColumn Field="@nameof(Livre.Annee)" HeaderText="Année" Width="95"
+                            TextAlign="TextAlign.Center" HeaderTextAlign="TextAlign.Center"
+                            Visible="@_colonnes.EstVisible(nameof(Livre.Annee))" />
+                <GridColumn Field="@nameof(Livre.Lu)" HeaderText="Lu" Width="60"
+                            DisplayAsCheckBox="true" TextAlign="TextAlign.Center" HeaderTextAlign="TextAlign.Center"
+                            Visible="@_colonnes.EstVisible(nameof(Livre.Lu))" />
+            </GridColumns>
+        </SfGrid>
+    </div>
+
+    <div class="aide mt-2">@Vm.Resume</div>
+</MudPaper>
+
+@code {
+    private SfGrid<Livre>? _grille;
+    private SelecteurColonnes _colonnes = default!;
+
+    /// <summary>
+    /// La grille reçoit une COPIE de la liste, refaite quand la collection du
+    /// ViewModel change. Branchée directement sur l'ObservableCollection, elle
+    /// se redessinerait à chaque Add — 500 fois par frappe dans la recherche.
+    /// </summary>
+    private List<Livre>? _lignes;
+    private List<Livre> Lignes => _lignes ??= [.. Vm.Livres];
+
+    protected override void OnInitialized()
+    {
+        // Les clés sont les noms de champ, comme les MappingName du WPF : le
+        // réglage mémorisé est le même pour les deux interfaces.
+        _colonnes = new SelecteurColonnes(
+            [
+                new(nameof(Livre.TitreComplet), "Titre"),
+                new(nameof(Livre.Auteurs), "Auteurs"),
+                new(nameof(Livre.EditeurNom), "Éditeur"),
+                new(nameof(Livre.GenreNom), "Genre"),
+                new(nameof(Livre.ClassementNom), "Ma catégorie"),
+                new(nameof(Livre.Rangement), "Rangement"),
+                new(nameof(Livre.ProprietaireNom), "Propriétaire"),
+                new(nameof(Livre.Annee), "Année"),
+                new(nameof(Livre.Lu), "Lu"),
+            ],
+            () => Vm.ColonnesMasquees,
+            valeur => Vm.ColonnesMasquees = valeur);
+
+        Vm.Livres.CollectionChanged += SurCollection;
+        base.OnInitialized();
+    }
+
+    protected override void Arrivee()
+    {
+        Vm.Charger();
+        ReconstruireColonnes();
+    }
+
+    /// <summary>
+    /// Le réglage des propriétaires est relu à chaque visite (voir
+    /// BibliothequeViewModel.Charger) : la liste des colonnes se reconstruit
+    /// quand il change, sans redémarrage.
+    /// </summary>
+    protected override void ProprieteChangee(string? nom)
+    {
+        if (nom == nameof(BibliothequeViewModel.ProprietairesActifs))
+            ReconstruireColonnes();
+    }
+
+    private void ReconstruireColonnes() =>
+        _colonnes.Construire(Vm.ProprietairesActifs
+            ? new HashSet<string>()
+            : new HashSet<string> { nameof(Livre.ProprietaireNom) });
+
+    private void SurCollection(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        _lignes = null;
+        // La liste rechargée, la ligne choisie n'y est plus — même effet que la
+        // remise à zéro de l'ItemsSource dans le WPF, qui vidait la sélection.
+        Vm.Selection = null;
+    }
+
+    private void SurSelection(RowSelectEventArgs<Livre> e) => Vm.Selection = e.Data;
+    private void SurDeselection(RowDeselectEventArgs<Livre> e) => Vm.Selection = null;
+
+    /// <summary>
+    /// Le double-clic ouvre la fiche — même geste que dans le WPF. C'est la
+    /// COMMANDE qui est appelée : le bouton et le double-clic doivent faire
+    /// exactement la même chose.
+    /// </summary>
+    private async Task SurDoubleClic(RecordDoubleClickEventArgs<Livre> e)
+    {
+        if (e.RowData is null) return;
+        Vm.Selection = e.RowData;
+        await Vm.ModifierCommand.ExecuteAsync(null);
+    }
+
+    public override void Dispose()
+    {
+        Vm.Livres.CollectionChanged -= SurCollection;
+        base.Dispose();
+    }
+}

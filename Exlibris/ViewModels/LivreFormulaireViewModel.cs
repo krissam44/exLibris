@@ -181,10 +181,10 @@ public partial class LivreFormulaireViewModel : ObservableObject
     /// de vérifier qu'on tient la bonne édition avant d'enregistrer.
     /// </summary>
     [RelayCommand]
-    private void AgrandirCouverture()
+    private async Task AgrandirCouvertureAsync()
     {
         if (CheminCouverture is { Length: > 0 } chemin)
-            _dialogues.AfficherImage(string.IsNullOrWhiteSpace(Titre) ? "Couverture" : Titre, chemin);
+            await _dialogues.AfficherImageAsync(string.IsNullOrWhiteSpace(Titre) ? "Couverture" : Titre, chemin);
     }
 
     /// <summary>
@@ -202,7 +202,7 @@ public partial class LivreFormulaireViewModel : ObservableObject
     [RelayCommand]
     private async Task ChoisirCouvertureAsync()
     {
-        if (_dialogues.ChoisirImage() is not { } source) return;
+        if (await _dialogues.ChoisirImageAsync() is not { } source) return;
 
         var fichier = await _couvertures.ImporterAsync(source);
 

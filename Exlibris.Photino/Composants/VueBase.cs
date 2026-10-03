@@ -30,10 +30,21 @@ public abstract class VueBase<TViewModel> : ComponentBase, IDisposable
     /// <summary>Appelé à chaque arrivée sur la page.</summary>
     protected virtual void Arrivee() { }
 
+    /// <summary>
+    /// Appelé quand une propriété du ViewModel change, AVANT le redessin.
+    /// Pour les pages qui tiennent une copie de l'état (une grille qui ne doit
+    /// pas suivre une collection élément par élément, par exemple).
+    /// </summary>
+    protected virtual void ProprieteChangee(string? nom) { }
+
     // InvokeAsync : la notification peut venir d'une tâche de fond (await sans
     // contexte), hors du fil de rendu de Blazor.
     private void SurChangement(object? sender, PropertyChangedEventArgs e) =>
-        _ = InvokeAsync(StateHasChanged);
+        _ = InvokeAsync(() =>
+        {
+            ProprieteChangee(e.PropertyName);
+            StateHasChanged();
+        });
 
     public virtual void Dispose() => Vm.PropertyChanged -= SurChangement;
 }

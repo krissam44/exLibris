@@ -4,51 +4,22 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Exlibris.Dialogues;
+using Exlibris.ViewModels;
+using Exlibris.Vues;
 
 namespace Exlibris.Services;
 
 /// <summary>
-/// Ouvre les dialogues pour le compte des ViewModels.
-///
-/// <b>Pourquoi un service plutôt qu'un appel direct.</b> Un ViewModel qui
-/// construirait lui-même une <c>Window</c> deviendrait impossible à éprouver
-/// hors interface : le premier test qui l'exercerait ouvrirait une vraie
-/// fenêtre et attendrait un clic. En passant par une interface, un test
-/// substitue une implémentation qui répond « validé » sans rien afficher.
+/// Implémentation WPF de <see cref="IDialogueService"/> : des fenêtres
+/// modales (<c>ShowDialog</c>), dont le résultat est rendu sous forme de tâche
+/// déjà terminée.
 ///
 /// Le service vit dans le projet WPF, et c'est normal : ouvrir une fenêtre est
 /// une affaire d'interface. C'est l'INTERFACE que les ViewModels connaissent.
 /// </summary>
-public interface IDialogueService
-{
-    /// <summary>
-    /// Affiche <paramref name="corps"/> dans le gabarit commun et rend
-    /// <c>true</c> si l'utilisateur a validé.
-    /// </summary>
-    bool Saisir(string titre, string aide, object corps, string libelleValider = "Enregistrer");
-
-    /// <summary>Question fermée. <c>true</c> si l'utilisateur confirme.</summary>
-    bool Confirmer(string titre, string question, string libelleValider = "Confirmer");
-
-    /// <summary>Montre une image en grand, sans autre action que fermer.</summary>
-    void AfficherImage(string titre, string chemin);
-
-    /// <summary>
-    /// Demande un fichier image. Renvoie son chemin, ou <c>null</c> si
-    /// l'utilisateur renonce.
-    /// </summary>
-    string? ChoisirImage();
-
-    /// <summary>
-    /// Demande un fichier quelconque. <paramref name="filtre"/> suit la
-    /// convention Windows : « Libellé|*.ext;*.ext2|Autre libellé|*.* ».
-    /// </summary>
-    string? ChoisirFichier(string titre, string filtre);
-}
-
 public class DialogueService : IDialogueService
 {
-    public bool Saisir(string titre, string aide, object corps, string libelleValider = "Enregistrer")
+    public Task<bool> SaisirAsync(string titre, string aide, object formulaire, string libelleValider = "Enregistrer")
     {
         var dialogue = new DialogueBase
         {
@@ -58,14 +29,31 @@ public class DialogueService : IDialogueService
             Owner = Application.Current.MainWindow,
             Titre = titre,
             Aide = aide,
-            Corps = corps,
+            Corps = VueDe(formulaire),
             LibelleValider = libelleValider,
         };
 
-        return dialogue.ShowDialog() == true;
+        return Task.FromResult(dialogue.ShowDialog() == true);
     }
 
-    public bool Confirmer(string titre, string question, string libelleValider = "Confirmer")
+    /// <summary>
+    /// La vue WPF de chaque ViewModel de formulaire. Une vue NEUVE à chaque
+    /// appel, sur le même ViewModel : un formulaire rouvert après un refus
+    /// (titre manquant) retrouve ainsi la saisie intacte.
+    ///
+    /// Un ViewModel absent de cette liste est une erreur de programmation, et
+    /// elle se voit au premier essai — d'où l'exception plutôt qu'un dialogue
+    /// vide qui ferait croire à un formulaire sans champ.
+    /// </summary>
+    private static object VueDe(object formulaire) => formulaire switch
+    {
+        LivreFormulaireViewModel livre => new LivreFormulaireVue { DataContext = livre },
+        SerieFormulaireViewModel serie => new SerieFormulaireVue { DataContext = serie },
+        _ => throw new ArgumentException(
+            $"Aucune vue WPF déclarée pour {formulaire.GetType().Name}.", nameof(formulaire)),
+    };
+
+    public Task<bool> ConfirmerAsync(string titre, string question, string libelleValider = "Confirmer")
     {
         var texte = new TextBlock
         {
@@ -83,7 +71,7 @@ public class DialogueService : IDialogueService
             LibelleAnnuler = "Annuler",
         };
 
-        return dialogue.ShowDialog() == true;
+        return Task.FromResult(dialogue.ShowDialog() == true);
     }
 
     /// <summary>
@@ -100,12 +88,12 @@ public class DialogueService : IDialogueService
     /// poche, et une fenêtre calculée sur un rapport fixe leur laisserait de
     /// larges bandes vides.
     /// </summary>
-    public void AfficherImage(string titre, string chemin)
+    public Task AfficherImageAsync(string titre, string chemin)
     {
         var source = new Convertisseurs.ImageFichierConverter()
             .Convert(chemin, typeof(ImageSource), null, CultureInfo.CurrentCulture) as BitmapSource;
 
-        if (source is null) return;
+        if (source is null) return Task.CompletedTask;
 
         var hauteurMax = SystemParameters.WorkArea.Height * 0.8;
         var hauteurImage = Math.Min(source.PixelHeight, hauteurMax);
@@ -131,9 +119,10 @@ public class DialogueService : IDialogueService
         };
 
         dialogue.ShowDialog();
+        return Task.CompletedTask;
     }
 
-    public string? ChoisirImage()
+    public Task<string?> ChoisirImageAsync()
     {
         var selecteur = new Microsoft.Win32.OpenFileDialog
         {
@@ -151,10 +140,10 @@ public class DialogueService : IDialogueService
             CheckFileExists = true,
         };
 
-        return selecteur.ShowDialog() == true ? selecteur.FileName : null;
+        return Task.FromResult(selecteur.ShowDialog() == true ? selecteur.FileName : null);
     }
 
-    public string? ChoisirFichier(string titre, string filtre)
+    public Task<string?> ChoisirFichierAsync(string titre, string filtre)
     {
         var selecteur = new Microsoft.Win32.OpenFileDialog
         {
@@ -163,6 +152,6 @@ public class DialogueService : IDialogueService
             CheckFileExists = true,
         };
 
-        return selecteur.ShowDialog() == true ? selecteur.FileName : null;
+        return Task.FromResult(selecteur.ShowDialog() == true ? selecteur.FileName : null);
     }
 }

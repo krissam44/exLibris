@@ -4,7 +4,6 @@ using CommunityToolkit.Mvvm.Input;
 using Exlibris.Data;
 using Exlibris.Services;
 using Exlibris.Shared.Modeles;
-using Exlibris.Vues;
 
 namespace Exlibris.ViewModels;
 
@@ -78,45 +77,48 @@ public partial class BibliothequeViewModel(
     }
 
     [RelayCommand]
-    private void NouvelOuvrage()
+    private async Task NouvelOuvrageAsync()
     {
         var formulaire = new LivreFormulaireViewModel(
             referentiels, notices, couvertures, dialogues, ProprietairesActifs);
 
-        if (Enregistrer(formulaire, "Nouvel ouvrage",
+        if (await EnregistrerAsync(formulaire, "Nouvel ouvrage",
                 "Seul le titre est obligatoire. Ce que vous ne savez pas se remplira plus tard, "
                 + "à la main ou par la recherche d'ISBN."))
             Charger();
     }
 
     [RelayCommand]
-    private void Modifier()
+    private async Task ModifierAsync()
     {
         if (Selection is null) return;
 
         var formulaire = new LivreFormulaireViewModel(
             referentiels, notices, couvertures, dialogues, ProprietairesActifs, Selection);
-        if (Enregistrer(formulaire, "Modifier l'ouvrage", string.Empty))
+        if (await EnregistrerAsync(formulaire, "Modifier l'ouvrage", string.Empty))
             Charger();
     }
 
     [RelayCommand]
-    private void Supprimer()
+    private async Task SupprimerAsync()
     {
-        if (Selection is null) return;
+        // Retenue AVANT l'attente : pendant que la question est posée, la
+        // sélection peut bouger (sous Blazor, la grille reste vivante derrière
+        // le dialogue). On supprime la ligne qu'on a NOMMÉE dans la question.
+        if (Selection is not { } livre) return;
 
         // La confirmation est demandée parce que rien ne rattrape : ni
         // corbeille, ni historique. Le titre complet est cité pour qu'on voie
         // ce qu'on efface — « supprimer cet ouvrage ? » n'apprend rien quand on
         // a cliqué sur la mauvaise ligne.
-        if (!dialogues.Confirmer(
+        if (!await dialogues.ConfirmerAsync(
                 "Supprimer cet ouvrage ?",
-                $"« {Selection.TitreComplet} » sera retiré de votre bibliothèque. "
+                $"« {livre.TitreComplet} » sera retiré de votre bibliothèque. "
                 + "L'opération est définitive.",
                 "Supprimer"))
             return;
 
-        livres.Supprimer(Selection.Id);
+        livres.Supprimer(livre.Id);
         Charger();
     }
 
@@ -129,13 +131,11 @@ public partial class BibliothequeViewModel(
     /// rouvrir tant que le titre manque. Le ViewModel n'étant pas reconstruit,
     /// l'utilisateur retrouve sa saisie intacte.
     /// </summary>
-    private bool Enregistrer(LivreFormulaireViewModel formulaire, string titre, string aide)
+    private async Task<bool> EnregistrerAsync(LivreFormulaireViewModel formulaire, string titre, string aide)
     {
         while (true)
         {
-            var vue = new LivreFormulaireVue { DataContext = formulaire };
-
-            if (!dialogues.Saisir(titre, aide, vue)) return false;
+            if (!await dialogues.SaisirAsync(titre, aide, formulaire)) return false;
             if (!formulaire.Valide()) continue;
 
             var livre = formulaire.VersLivre();

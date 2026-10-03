@@ -4,7 +4,6 @@ using CommunityToolkit.Mvvm.Input;
 using Exlibris.Data;
 using Exlibris.Services;
 using Exlibris.Shared.Modeles;
-using Exlibris.Vues;
 
 namespace Exlibris.ViewModels;
 
@@ -78,23 +77,24 @@ public partial class SeriesViewModel(
     /// la série, et si elle est terminée.
     /// </summary>
     [RelayCommand]
-    private void Modifier()
+    private async Task ModifierAsync()
     {
-        if (Selection is null) return;
+        // Retenue avant l'attente, comme la suppression d'un ouvrage : la
+        // sélection peut changer derrière un dialogue Blazor.
+        if (Selection is not { } serie) return;
 
-        var formulaire = new SerieFormulaireViewModel(Selection);
-        var vue = new SerieFormulaireVue { DataContext = formulaire };
+        var formulaire = new SerieFormulaireViewModel(serie);
 
-        if (!dialogues.Saisir(
-                $"Série « {Selection.Nom} »",
+        if (!await dialogues.SaisirAsync(
+                $"Série « {serie.Nom} »",
                 "Le nombre de tomes ne figure dans aucune base publique de façon fiable : il se "
                 + "saisit à la main, et c'est lui qui révèle les tomes manquants À LA FIN d'une "
                 + "série. Sans lui, seuls les trous intérieurs se détectent.",
-                vue))
+                formulaire))
             return;
 
         referentiels.MettreAJourSerie(
-            Selection.Id, formulaire.TomesAnnoncesSaisis, formulaire.Terminee, formulaire.Note);
+            serie.Id, formulaire.TomesAnnoncesSaisis, formulaire.Terminee, formulaire.Note);
 
         Charger();
     }

@@ -122,7 +122,7 @@ public partial class ParametresViewModel(
     /// exécution à l'autre.
     /// </summary>
     [RelayCommand]
-    private void Fusionner()
+    private async Task FusionnerAsync()
     {
         var choisies = Cochees;
 
@@ -145,7 +145,7 @@ public partial class ParametresViewModel(
         var detail = string.Join("\n", absorbes.Select(e =>
             $"• « {e.Nom} » ({e.NbOuvrages} ouvrage{(e.NbOuvrages > 1 ? "s" : "")})"));
 
-        if (!dialogues.Confirmer(
+        if (!await dialogues.ConfirmerAsync(
                 "Réunir ces entrées ?",
                 $"« {survivant.Nom} » sera conservé.\n\n{detail}\n\n"
                 + "Leurs ouvrages lui seront rattachés, et ces libellés ne reviendront "

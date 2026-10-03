@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MudBlazor.Services;
 using Photino.Blazor;
+using Syncfusion.Blazor;
 
 namespace Exlibris.Photino;
 
@@ -33,22 +34,40 @@ internal static class Program
             .AddEnvironmentVariables()
             .Build();
 
+        // Même dispositif que le WPF (voir App.EnregistrerLicenceSyncfusion) :
+        // sans clé, bannière d'évaluation, mais l'application démarre.
+        if (configuration["Syncfusion:LicenseKey"] is { Length: > 0 } cle)
+            Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(cle);
+
         var builder = PhotinoBlazorAppBuilder.CreateDefault(args);
         var services = builder.Services;
 
         services.AddLogging();
         services.AddMudServices();
+        services.AddSyncfusionBlazor();
+        services.AddSingleton<ISyncfusionStringLocalizer, Services.SyncfusionFrancais>();
 
+        // Le dossier des données se déplace par la configuration
+        // (Exlibris__DossierDonnees) : c'est ce qui permet d'essayer
+        // l'application sur une COPIE de la base, sans jamais toucher la vraie.
         services.AddExlibrisDonnees(
-            Composition.DossierDonnees(),
+            configuration["Exlibris:DossierDonnees"] is { Length: > 0 } dossier
+                ? dossier
+                : Composition.DossierDonnees(),
             configuration["Lirevia:ApiUrl"] ?? string.Empty);
 
-        // ----- Les écrans
+        // ----- Les écrans et les dialogues
         //
-        // En singleton, comme dans le WPF : une rubrique conserve son état
-        // d'une visite à l'autre. Revenir sur la Bibliothèque doit retrouver la
-        // recherche en cours, pas recharger 7 000 livres.
-        services.AddSingleton<AccueilViewModel>();
+        // En SCOPED, et non en singleton comme dans le WPF — mais pour le même
+        // effet. Photino n'ouvre qu'une fenêtre, donc qu'une portée pour toute
+        // la vie de l'application : une rubrique conserve bien son état d'une
+        // visite à l'autre. La raison du scoped est le service de dialogues de
+        // MudBlazor, scoped lui-même : résolu depuis la racine, un singleton en
+        // recevrait une AUTRE instance que celle du MudDialogProvider affiché,
+        // et aucun dialogue n'apparaîtrait jamais.
+        services.AddScoped<Exlibris.Services.IDialogueService, Services.DialogueService>();
+        services.AddScoped<AccueilViewModel>();
+        services.AddScoped<BibliothequeViewModel>();
 
         builder.RootComponents.Add<App>("app");
 

@@ -30,6 +30,9 @@
          on remonte explicitement à la version alignée sur le runtime .NET 10. -->
     <PackageReference Include="Microsoft.AspNetCore.Components.WebView" Version="10.0.11" />
     <PackageReference Include="MudBlazor" Version="9.8.0" />
+    <!-- Même version que Syncfusion WPF, pour que la même clé de licence vaille. -->
+    <PackageReference Include="Syncfusion.Blazor.Grid" Version="34.2.5" />
+    <PackageReference Include="Syncfusion.Blazor.Themes" Version="34.2.5" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.11" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.11" />
@@ -42,6 +45,11 @@
        s'allonge à chaque étape du portage. -->
   <ItemGroup>
     <Compile Include="..\Exlibris\ViewModels\AccueilViewModel.cs" Link="ViewModels\AccueilViewModel.cs" />
+    <Compile Include="..\Exlibris\ViewModels\BibliothequeViewModel.cs" Link="ViewModels\BibliothequeViewModel.cs" />
+    <!-- Le formulaire d'ouvrage est construit par BibliothequeViewModel : lié dès
+         l'étape 2, sa vue Razor arrive à l'étape 3. -->
+    <Compile Include="..\Exlibris\ViewModels\LivreFormulaireViewModel.cs" Link="ViewModels\LivreFormulaireViewModel.cs" />
+    <Compile Include="..\Exlibris\Services\IDialogueService.cs" Link="Services\IDialogueService.cs" />
   </ItemGroup>
 
   <!-- La configuration est celle du projet WPF : appsettings.json (versionné,

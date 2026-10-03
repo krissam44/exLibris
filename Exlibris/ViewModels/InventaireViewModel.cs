@@ -51,9 +51,9 @@ public partial class InventaireViewModel(
     // -----------------------------------------------------------------------------------------------------------------
 
     [RelayCommand]
-    private void Importer()
+    private async Task ImporterAsync()
     {
-        var chemin = dialogues.ChoisirFichier(
+        var chemin = await dialogues.ChoisirFichierAsync(
             "Choisir un inventaire",
             "Inventaire scanné (*.csv)|*.csv|Tous les fichiers|*.*");
 
