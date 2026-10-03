@@ -21,6 +21,12 @@ public partial class LivreFormulaireViewModel : ObservableObject
     private readonly CouvertureDepot _couvertures;
     private readonly Services.IDialogueService _dialogues;
 
+    /// <summary>
+    /// Le livre tel qu'il était à l'ouverture, ou <c>null</c> pour un nouvel
+    /// ouvrage. Gardé pour <see cref="VersLivre"/> : voir pourquoi là-bas.
+    /// </summary>
+    private readonly Livre? _existant;
+
     public LivreFormulaireViewModel(
         ReferentielDepot referentiels, NoticeEnLigneService notices,
         CouvertureDepot couvertures, Services.IDialogueService dialogues,
@@ -30,6 +36,7 @@ public partial class LivreFormulaireViewModel : ObservableObject
         _notices = notices;
         _couvertures = couvertures;
         _dialogues = dialogues;
+        _existant = existant;
         ProprietairesActifs = proprietairesActifs;
 
         Editeurs    = referentiels.Editeurs().Select(e => e.Nom).ToList();
@@ -324,9 +331,26 @@ public partial class LivreFormulaireViewModel : ObservableObject
     /// <summary>
     /// Construit le livre à enregistrer, en résolvant les référentiels au
     /// passage — ce qui les crée si besoin.
+    ///
+    /// <b>Les champs que le formulaire n'affiche pas sont REPRIS du livre
+    /// d'origine.</b> <c>LivreDepot.MettreAJour</c> écrit toutes les colonnes :
+    /// un livre bâti sur les seuls champs de l'écran effaçait donc le résumé,
+    /// le nombre de pages, le format, la date de lecture, la source de la
+    /// notice et la date d'enrichissement à chaque modification — corriger une
+    /// faute dans le titre renvoyait la fiche dans « À compléter » et perdait
+    /// le résumé de la BnF, en silence. Constaté le 04/10/2026, couvert par
+    /// LivreFormulaireTests. Un champ AJOUTÉ un jour au modèle sans être montré
+    /// ici doit être reporté de la même façon.
     /// </summary>
     public Livre VersLivre() => new()
     {
+        NbPages      = _existant?.NbPages,
+        Format       = _existant?.Format ?? string.Empty,
+        Resume       = _existant?.Resume ?? string.Empty,
+        DateLecture  = _existant?.DateLecture,
+        SourceNotice = _existant?.SourceNotice ?? string.Empty,
+        EnrichiLe    = _existant?.EnrichiLe,
+
         Id           = Id,
         Isbn         = Isbn,
         Titre        = Titre.Trim(),
