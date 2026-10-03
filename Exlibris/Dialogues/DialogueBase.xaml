@@ -1,0 +1,60 @@
+<syncfusion:ChromelessWindow x:Class="Exlibris.Dialogues.DialogueBase"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+        Title="Ex-libris"
+        Width="820" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        CornerRadius="8"
+        TitleBarBackground="{StaticResource Ardoise}"
+        TitleBarForeground="White"
+        Background="{StaticResource Surface}">
+
+    <!--
+        Le gabarit commun des dialogues, calqué sur ceux de Lirevia : bandeau
+        ardoise, contenu au milieu, pied à deux boutons — « Fermer » en rouge à
+        gauche de l'action, l'action en ardoise à droite.
+
+        ChromelessWindow plutôt qu'une Window nue : elle expose TitleBarBackground
+        et TitleBarForeground, donc le bandeau se colore sans redéfinir le chrome
+        de la fenêtre à la main. Syncfusion WPF n'a pas d'équivalent du SfDialog
+        de Blazor — un dialogue y est une fenêtre.
+
+        Les angles arrondis viennent de sa propriété CornerRadius, et non d'un
+        montage maison. L'autre voie — WindowStyle="None" plus
+        AllowsTransparency — arrondit aussi, mais fait perdre l'ombre portée du
+        système et bascule la fenêtre en rendu logiciel : le texte y perd son
+        lissage sous-pixel. La documentation Syncfusion demande au moins 4 pour
+        que le redimensionnement reste praticable ; 8 est la valeur de Windows 11.
+
+        Les classes dérivées remplissent Contenu et posent les libellés des
+        boutons ; elles n'ont pas à redessiner ce cadre.
+    -->
+
+    <Grid Margin="20,18,20,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />   <!-- titre interne -->
+            <RowDefinition Height="*" />      <!-- contenu -->
+            <RowDefinition Height="Auto" />   <!-- boutons -->
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,14">
+            <TextBlock x:Name="TitreInterne" Style="{StaticResource TitreCarte}" />
+            <TextBlock x:Name="AideInterne" Style="{StaticResource Aide}" />
+        </StackPanel>
+
+        <ContentPresenter Grid.Row="1" x:Name="ZoneContenu" />
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal"
+                    HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button x:Name="BoutonAnnuler" Style="{StaticResource BoutonFermer}"
+                    Content="Fermer" IsCancel="True" Margin="0,0,10,0"
+                    Click="Annuler_Click" />
+            <Button x:Name="BoutonValider" Style="{StaticResource BoutonPrincipal}"
+                    Content="Enregistrer" IsDefault="True"
+                    Click="Valider_Click" />
+        </StackPanel>
+    </Grid>
+</syncfusion:ChromelessWindow>

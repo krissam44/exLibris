@@ -1,0 +1,38 @@
+<UserControl x:Class="Exlibris.Vues.AccueilVue"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Exlibris.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="900"
+             d:DataContext="{d:DesignInstance vm:AccueilViewModel}">
+
+    <StackPanel>
+        <Border Style="{StaticResource Carte}">
+            <StackPanel>
+                <TextBlock Text="Votre bibliothèque" Style="{StaticResource TitreCarte}" />
+                <TextBlock Style="{StaticResource Aide}"
+                           Text="Les quatre chiffres qu'on veut voir en ouvrant l'application. Le dernier dit combien de fiches attendent encore d'être complétées par les bases publiques." />
+
+                <UniformGrid Rows="1" Margin="0,14,0,0">
+                    <StackPanel Margin="0,0,12,0">
+                        <TextBlock Text="Ouvrages" Style="{StaticResource Legende}" />
+                        <TextBlock Text="{Binding NbLivres}" FontSize="26" FontWeight="SemiBold" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,12,0">
+                        <TextBlock Text="Séries" Style="{StaticResource Legende}" />
+                        <TextBlock Text="{Binding NbSeries}" FontSize="26" FontWeight="SemiBold" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,12,0">
+                        <TextBlock Text="Sans ISBN" Style="{StaticResource Legende}" />
+                        <TextBlock Text="{Binding NbSansIsbn}" FontSize="26" FontWeight="SemiBold" />
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock Text="À compléter" Style="{StaticResource Legende}" />
+                        <TextBlock Text="{Binding NbNonEnrichis}" FontSize="26" FontWeight="SemiBold" />
+                    </StackPanel>
+                </UniformGrid>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

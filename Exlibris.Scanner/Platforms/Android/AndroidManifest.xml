@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+	<!--
+	    ⚠️ usesCleartextTraffic : Android REFUSE le HTTP en clair depuis la
+	    version 9, et l'appel n'atteint alors jamais le réseau. C'est ce qui
+	    faisait que l'adresse de Lirevia, pourtant correcte, « ne semblait rien
+	    faire » : la recherche de titre avale ses erreurs pour ne jamais
+	    interrompre un scan, et l'échec restait donc muet.
+
+	    Le serveur visé est celui de l'utilisateur, sur son propre réseau local,
+	    et rien de confidentiel n'y transite — seulement un ISBN et un titre.
+	    Le jour où l'API serait exposée sur Internet, elle passerait en https et
+	    cette ligne devrait disparaître.
+	-->
+	<application android:usesCleartextTraffic="true" android:allowBackup="true" android:icon="@mipmap/appicon" android:roundIcon="@mipmap/appicon_round" android:supportsRtl="true"></application>
+	<uses-permission android:name="android.permission.CAMERA" />
+	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+	<uses-permission android:name="android.permission.INTERNET" />
+</manifest>

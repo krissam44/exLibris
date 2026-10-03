@@ -1,0 +1,155 @@
+﻿<Window x:Class="Exlibris.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Exlibris.ViewModels"
+        xmlns:vues="clr-namespace:Exlibris.Vues"
+        mc:Ignorable="d"
+        Title="Ex-libris" Icon="Assets/exlibris.ico" Height="800" Width="1280"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
+        Background="{StaticResource Fond}"
+        d:DataContext="{d:DesignInstance vm:MainViewModel}">
+
+    <!-- Height et Width restent, et ne sont pas contradictoires avec
+         WindowState : elles deviennent la taille de RESTAURATION, celle que la
+         fenêtre reprend quand on la réduit depuis le plein écran. Les retirer
+         laisserait Windows choisir, et il choisit petit. -->
+
+    <!--
+        La coquille, calquée sur Lirevia : barre du haut, menu à gauche,
+        contenu, pied de page. Le même bleu ardoise en haut et en bas encadre
+        la zone de travail.
+    -->
+
+    <Window.Resources>
+        <!-- ViewModel -> Vue. C'est WPF qui choisit le gabarit d'après le TYPE
+             de RubriqueActive.Vue : le ContentControl plus bas n'a donc rien à
+             savoir des écrans, et en ajouter un ne le touche pas. -->
+        <DataTemplate DataType="{x:Type vm:AccueilViewModel}">
+            <vues:AccueilVue />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:BibliothequeViewModel}">
+            <vues:BibliothequeVue />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:InventaireViewModel}">
+            <vues:InventaireVue />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ParametresViewModel}">
+            <vues:ParametresVue />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SeriesViewModel}">
+            <vues:SeriesVue />
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="44" />   <!-- barre du haut -->
+            <RowDefinition Height="*" />    <!-- menu + contenu -->
+            <RowDefinition Height="30" />   <!-- pied de page -->
+        </Grid.RowDefinitions>
+
+        <!-- ================= BARRE DU HAUT ================= -->
+        <Border Grid.Row="0" Background="{StaticResource Ardoise}">
+            <Grid Margin="12,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Bascule du menu réduit. Bouton nu : la barre est déjà
+                     colorée, un fond de plus l'alourdirait. -->
+                <Button Grid.Column="0" Command="{Binding BasculerMenuCommand}"
+                        Background="Transparent" BorderThickness="0"
+                        Foreground="White" Cursor="Hand"
+                        Width="32" Height="32" ToolTip="Réduire le menu">
+                    <TextBlock Text="&#xE700;" FontFamily="Segoe MDL2 Assets" FontSize="15" />
+                </Button>
+
+                <TextBlock Grid.Column="1" Text="Ex-libris"
+                           Style="{StaticResource TitreBarre}" Margin="8,0,0,0" />
+
+                <!-- Le nom de la bibliothèque au centre, comme dans Lirevia :
+                     c'est le repère qui dit « où suis-je ». -->
+                <TextBlock Grid.Column="2" Text="{Binding NomBibliotheque}"
+                           Style="{StaticResource TitreBarre}"
+                           HorizontalAlignment="Center" />
+
+                <TextBlock Grid.Column="3" Text="{Binding RubriqueActive.Libelle}"
+                           Style="{StaticResource TexteBarreSecondaire}" />
+            </Grid>
+        </Border>
+
+        <!-- ================= MENU + CONTENU ================= -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="{StaticResource FondMenu}"
+                    BorderBrush="{StaticResource Trait}" BorderThickness="0,0,1,0">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Width" Value="176" />
+                        <Style.Triggers>
+                            <!-- Réduit : la largeur d'une icône et rien d'autre.
+                                 Le libellé s'efface, la navigation reste. -->
+                            <DataTrigger Binding="{Binding MenuReduit}" Value="True">
+                                <Setter Property="Width" Value="48" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+
+                <ItemsControl ItemsSource="{Binding Rubriques}" Margin="0,8,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:Rubrique}">
+                            <RadioButton Style="{StaticResource LienMenu}"
+                                         IsChecked="{Binding IsSelected, Mode=OneWay}"
+                                         Command="{Binding DataContext.NaviguerCommand,
+                                                   RelativeSource={RelativeSource AncestorType=Window}}"
+                                         CommandParameter="{Binding}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Icone}" FontFamily="Segoe MDL2 Assets"
+                                               FontSize="15" VerticalAlignment="Center" Width="22" />
+                                    <TextBlock Text="{Binding Libelle}" VerticalAlignment="Center"
+                                               Margin="6,0,0,0">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DataContext.MenuReduit,
+                                                                 RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                 Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </RadioButton>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
+
+            <!-- Le contenu. Il ne connaît aucun écran : les DataTemplates
+                 déclarés plus haut font la correspondance. -->
+            <ContentControl Grid.Column="1" Margin="16"
+                            Content="{Binding RubriqueActive.Vue}" />
+        </Grid>
+
+        <!-- ================= PIED DE PAGE ================= -->
+        <Border Grid.Row="2" Background="{StaticResource Ardoise}">
+            <TextBlock Text="{Binding Version}"
+                       Foreground="{StaticResource TexteBarre}"
+                       FontSize="12" Opacity="0.9"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Border>
+    </Grid>
+</Window>

@@ -1,0 +1,77 @@
+<!--
+    MODÈLE. Copiez ce fichier en « signature.props » à côté de lui, et
+    renseignez les quatre valeurs. Le fichier « signature.props » est ignoré par
+    git : il porte des mots de passe.
+
+        copy signature.example.props signature.props
+
+    ─────────────────────────────────────────────────────────────────────────
+    À QUOI SERT LA CLÉ
+
+    Android identifie une application par la clé qui l'a signée, jamais par son
+    nom. Une mise à jour n'est acceptée que si elle porte la MÊME signature que
+    ce qui est déjà installé.
+
+    ⚠️ CE FICHIER .keystore EST IRREMPLAÇABLE. Perdu, vous ne pourrez plus
+    jamais publier de mise à jour par-dessus une installation existante : il
+    faudrait désinstaller — donc perdre les scans en cours — pour réinstaller.
+    Il n'existe aucun recours, aucune régénération possible. Sauvegardez-le
+    ailleurs que dans ce projet, avec son mot de passe.
+
+    ─────────────────────────────────────────────────────────────────────────
+    LA CRÉER, UNE FOIS POUR TOUTES
+
+        keytool -genkeypair -v -keystore exlibris.keystore -alias exlibris `
+                -keyalg RSA -keysize 2048 -validity 10000
+
+    « keytool » vient avec le JDK qu'installe la charge de travail Android
+    (C:\Program Files\Microsoft\jdk-*\bin). 10 000 jours ≈ 27 ans : une clé
+    expirée ne signe plus, et le compte à rebours ne se remonte pas.
+
+    ─────────────────────────────────────────────────────────────────────────
+    POURQUOI UN FICHIER À PART PLUTÔT QUE LE CSPROJ
+
+    Même raison que la clé de licence Syncfusion : le csproj est versionné, les
+    mots de passe ne doivent pas l'être. Un secret parti une fois dans un dépôt
+    y reste, même effacé ensuite — l'historique le garde.
+
+    Le passer en ligne de commande à chaque publication aurait le même défaut en
+    pire : les mots de passe finiraient dans l'historique du terminal, que
+    personne ne songe à nettoyer.
+-->
+<Project>
+  <PropertyGroup>
+
+    <!-- Chemin ABSOLU du fichier .keystore. Hors du projet, de préférence :
+         un chemin relatif finirait par pointer dans une copie de travail. -->
+    <AndroidSigningKeyStore>D:\Cles\exlibris.keystore</AndroidSigningKeyStore>
+
+    <!-- L'alias donné à « keytool -alias ». -->
+    <AndroidSigningKeyAlias>exlibris</AndroidSigningKeyAlias>
+
+    <!-- Le mot de passe du magasin, puis celui de la clé. « keytool » propose
+         le même pour les deux, et c'est le cas courant.
+
+         ⚠️ AUCUN GUILLEMET NI APOSTROPHE AUTOUR. Contrairement à la ligne de
+         commande, ici ils ne délimitent rien : ils ENTRERAIENT dans le mot de
+         passe. Vérifié le 30/08/2026 — « 'motdepasse' » est lu tel quel,
+         apostrophes comprises.
+
+         Les caractères à surveiller, mesurés le même jour :
+
+           #  $  @  et tout le reste  →  RIEN À FAIRE, écrivez-les tels quels.
+
+           %  suivi de deux caractères 0-9 ou A-F  →  MSBuild le décode.
+              « mot%42passe » est lu « motBpasse ». Écrivez le pour-cent
+              « %25 » : « mot%2542passe » donne bien « mot%42passe ».
+              C'est le seul vrai piège, et il ne se voit pas — la signature
+              échoue en annonçant un mot de passe incorrect alors que le
+              fichier semble porter le bon.
+
+           &  <  >  →  échappez-les en XML : &amp; &lt; &gt;
+    -->
+    <AndroidSigningStorePass>à-remplacer</AndroidSigningStorePass>
+    <AndroidSigningKeyPass>à-remplacer</AndroidSigningKeyPass>
+
+  </PropertyGroup>
+</Project>

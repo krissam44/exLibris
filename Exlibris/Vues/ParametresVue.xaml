@@ -1,0 +1,107 @@
+<UserControl x:Class="Exlibris.Vues.ParametresVue"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Exlibris.ViewModels"
+             xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+             mc:Ignorable="d" d:DesignWidth="900"
+             d:DataContext="{d:DesignInstance vm:ParametresViewModel}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ================= Réglages ================= -->
+        <Border Grid.Row="0" Style="{StaticResource Carte}" Margin="0,0,0,12">
+            <StackPanel>
+                <TextBlock Text="Réglages" Style="{StaticResource TitreCarte}" />
+
+                <CheckBox Content="Distinguer le propriétaire de chaque ouvrage"
+                          IsChecked="{Binding ProprietairesActifs}" Margin="0,10,0,0" />
+
+                <TextBlock Style="{StaticResource Aide}" Margin="22,4,0,0" MaxWidth="620"
+                           HorizontalAlignment="Left"
+                           Text="Ajoute un champ « Propriétaire » à la fiche et une colonne à la liste, pour séparer vos ouvrages de ceux de votre conjoint ou de vos enfants. Laissez décoché si la bibliothèque n'a qu'un propriétaire : une case dont la réponse est toujours la même n'apprend rien." />
+            </StackPanel>
+        </Border>
+
+        <!-- ================= Référentiels =================
+             La grille occupe la place restante : c'est elle qu'on parcourt, et
+             une hauteur fixe ferait défiler une liste de trois lignes comme une
+             de trois cents. -->
+        <Border Grid.Row="1" Style="{StaticResource Carte}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="Réunir les doublons"
+                           Style="{StaticResource TitreCarte}" />
+
+                <TextBlock DockPanel.Dock="Top" Style="{StaticResource Aide}"
+                           MaxWidth="620" HorizontalAlignment="Left" Margin="0,0,0,10"
+                           Text="Le même éditeur arrive sous plusieurs noms selon la source. Cochez les libellés à réunir : celui qui porte le plus d'ouvrages est conservé, et les autres ne reviendront plus — une notice qui les emploierait retombera sur lui." />
+
+                <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <ComboBox Grid.Column="0" Style="{StaticResource ChampListeFermee}"
+                              Width="200"
+                              ItemsSource="{Binding Referentiels}"
+                              DisplayMemberPath="Libelle"
+                              SelectedItem="{Binding ReferentielChoisi}" />
+
+                    <TextBlock Grid.Column="2" Text="{Binding MessageFusion}"
+                               Style="{StaticResource Aide}"
+                               VerticalAlignment="Center" Margin="0,0,12,0" />
+
+                    <Button Grid.Column="3" Content="Réunir la sélection"
+                            Style="{StaticResource BoutonPrincipal}" Height="30"
+                            Command="{Binding FusionnerCommand}" />
+                </Grid>
+
+                <!-- ⚠️ DES CASES À COCHER, et non la sélection de la grille.
+                     La version précédente liait `SelectedItems` au ViewModel :
+                     trois lignes en surbrillance à l'écran, et « Réunir »
+                     répondait pourtant « sélectionnez au moins deux entrées ».
+
+                     La case coche une propriété de la DONNÉE. Outre qu'elle
+                     contourne ce piège, elle vaut mieux ici pour deux raisons
+                     d'usage : elle SE VOIT — on relit son choix avant une
+                     opération sans retour — et elle SURVIT au tri comme au
+                     filtre, là où une sélection multiple se perd au premier clic
+                     distrait. -->
+                <syncfusion:SfDataGrid Style="{StaticResource Grille}"
+                                       ItemsSource="{Binding Entrees}"
+                                       AllowFiltering="True"
+                                       AllowEditing="True"
+                                       EditTrigger="OnTap">
+                    <syncfusion:SfDataGrid.Columns>
+                        <!-- La SEULE colonne modifiable. Les autres restent en
+                             lecture : rien ici ne se corrige à la main, et une
+                             cellule qui s'ouvre au clic ferait croire le
+                             contraire. -->
+                        <syncfusion:GridCheckBoxColumn MappingName="Choisi" HeaderText="Réunir"
+                                                       Width="80" AllowEditing="True"
+                                                       HorizontalHeaderContentAlignment="Center" />
+
+                        <syncfusion:GridTextColumn MappingName="Nom" HeaderText="Libellé"
+                                                   AllowEditing="False" />
+
+                        <!-- Le décompte sert la décision : devant quatre « Livre
+                             de poche », on garde celui qui en porte deux cents. -->
+                        <syncfusion:GridNumericColumn MappingName="NbOuvrages" HeaderText="Ouvrages"
+                                                      Width="110" NumberDecimalDigits="0"
+                                                      AllowEditing="False"
+                                                      TextAlignment="Center"
+                                                      HorizontalHeaderContentAlignment="Center" />
+                    </syncfusion:SfDataGrid.Columns>
+                </syncfusion:SfDataGrid>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

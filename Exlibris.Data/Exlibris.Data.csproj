@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Exlibris.Shared\Exlibris.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.1.79" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.11" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+
+  <!-- Le schéma est EMBARQUÉ dans l'assembly plutôt que copié à côté de
+       l'exécutable : il ne peut alors ni manquer au déploiement, ni être
+       modifié par mégarde à côté d'une base déjà créée. Les tests lisent
+       exactement celui que l'application applique — un schéma dupliqué
+       finit toujours par diverger. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Sql\schema.sql" />
+  </ItemGroup>
+
+  <!-- Ouvre les membres `internal` à la suite de tests. C'est un JOINT D'ESSAI,
+       pas une extension d'API : il sert à éprouver l'analyse des réponses JSON
+       de NoticeEnLigneService sans réseau. Les rendre publiques promettrait à
+       tout appelant qu'elles ne bougeront plus. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Exlibris.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Exlibris.Data/Exlibris.Data.csproj" />
+  <Project Path="Exlibris.Scanner/Exlibris.Scanner.csproj" />
+  <Project Path="Exlibris.Shared/Exlibris.Shared.csproj" />
+  <Project Path="Exlibris.Tests/Exlibris.Tests.csproj" />
+  <Project Path="Exlibris/Exlibris.csproj" />
+</Solution>

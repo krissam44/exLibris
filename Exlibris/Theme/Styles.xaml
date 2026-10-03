@@ -1,0 +1,365 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:syncfusion="http://schemas.syncfusion.com/wpf">
+
+    <!--
+        Les styles de la coquille. Aucune couleur littérale ici : tout vient de
+        Couleurs.xaml, seul endroit à corriger si la charte bouge.
+    -->
+
+    <!-- ================================================================
+         Barre du haut et pied de page
+         ================================================================ -->
+    <Style x:Key="TitreBarre" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource TexteBarre}" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="TexteBarreSecondaire" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource TexteBarre}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Opacity" Value="0.85" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- ================================================================
+         Menu latéral
+
+         Un ToggleButton plutôt qu'un ListBoxItem : la navigation est un
+         choix exclusif, et le ToggleButton porte nativement l'état
+         « actif » que le style peint. Un ListBox aurait apporté sa
+         sélection au clavier et son fond bleu système, qu'il aurait fallu
+         neutraliser.
+         ================================================================ -->
+    <Style x:Key="LienMenu" TargetType="RadioButton">
+        <Setter Property="GroupName" Value="Navigation" />
+        <Setter Property="Foreground" Value="{StaticResource Texte}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="12,0" />
+        <!-- 36 px : assez pour rester cliquable au doigt sur un écran tactile,
+             assez peu pour que six rubriques tiennent sans que le menu pèse
+             plus que le contenu. -->
+        <Setter Property="Height" Value="36" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="Fond" Background="Transparent" Padding="{TemplateBinding Padding}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <!-- Le liseré d'élément actif, à gauche : même
+                                     repère que le menu de Lirevia. -->
+                                <ColumnDefinition Width="3" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border x:Name="Liseré" Grid.Column="0" Background="Transparent"
+                                    Margin="-12,0,0,0" />
+                            <ContentPresenter Grid.Column="1"
+                                              VerticalAlignment="Center"
+                                              HorizontalAlignment="Left" />
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Fond" Property="Background" Value="{StaticResource MenuSurvol}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Fond" Property="Background" Value="{StaticResource MenuActifFond}" />
+                            <Setter TargetName="Liseré" Property="Background" Value="{StaticResource Ardoise}" />
+                            <Setter Property="Foreground" Value="{StaticResource Ardoise}" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ================================================================
+         Boutons — mêmes rôles et mêmes couleurs que les dialogues Lirevia
+         ================================================================ -->
+    <Style x:Key="BoutonBase" TargetType="Button">
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="16,7" />
+        <Setter Property="MinWidth" Value="110" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Fond" Background="{TemplateBinding Background}"
+                            CornerRadius="4" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Fond" Property="Opacity" Value="0.88" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Fond" Property="Opacity" Value="0.45" />
+                            <Setter Property="Cursor" Value="Arrow" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="BoutonPrincipal" TargetType="Button" BasedOn="{StaticResource BoutonBase}">
+        <Setter Property="Background" Value="{StaticResource Ardoise}" />
+    </Style>
+
+    <!-- Action secondaire : présente, mais qui ne réclame pas le regard. -->
+    <Style x:Key="BoutonSecondaire" TargetType="Button" BasedOn="{StaticResource BoutonBase}">
+        <Setter Property="Background" Value="{StaticResource TexteDoux}" />
+    </Style>
+
+    <Style x:Key="BoutonValidation" TargetType="Button" BasedOn="{StaticResource BoutonBase}">
+        <Setter Property="Background" Value="{StaticResource Vert}" />
+    </Style>
+
+    <!-- Rouge des boutons « Fermer » de Lirevia : il ferme, il ne détruit pas.
+         Le rouge y dit « on s'en va », pas « attention ». -->
+    <Style x:Key="BoutonFermer" TargetType="Button" BasedOn="{StaticResource BoutonBase}">
+        <Setter Property="Background" Value="{StaticResource Rouge}" />
+    </Style>
+
+    <!-- Bouton SANS décor : rend un élément cliquable sans rien lui ajouter.
+         Employé sur la vignette de couverture — un vrai bouton autour d'elle
+         dessinerait un cadre et un fond gris qui jureraient avec l'image, alors
+         qu'un gestionnaire de clic sur le Border contournerait la commande et
+         remettrait de la logique dans le code-behind. -->
+    <Style x:Key="BoutonSansDecor" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <ContentPresenter />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ================================================================
+         Carte : le conteneur de contenu, équivalent du MudCard
+         ================================================================ -->
+    <Style x:Key="Carte" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource Surface}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Trait}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="16" />
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect BlurRadius="8" ShadowDepth="1" Direction="270" Opacity="0.10" />
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="TitreCarte" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource Ardoise}" />
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+
+    <!-- Légende et libellés secondaires : l'orange de Lirevia. -->
+    <Style x:Key="Legende" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource Orange}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style x:Key="Aide" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource TexteDoux}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <!-- ================================================================
+         Champs de saisie
+         ================================================================ -->
+    <!--
+        TROIS LEVIERS, un seul endroit pour chacun.
+
+        1. HAUTEUR d'un contrôle → la propriété Height de « Champ » et
+           « ChampListe ». 34 px conviennent à une saisie tactile, 30 px à un
+           formulaire qu'on remplit au clavier — le cas d'Ex-libris. Sous 26 px,
+           le texte serait à l'étroit dans sa bordure.
+
+        2. ESPACE ENTRE DEUX CHAMPS → la Margin de « BlocChamp ». C'est la marge
+           BASSE de chaque bloc qui fait l'intervalle, jamais la marge haute du
+           suivant : deux marges qui se rencontrent s'ADDITIONNENT en WPF,
+           contrairement au CSS qui les fusionne. Régler les deux donne des
+           écarts qu'on ne s'explique plus.
+
+        3. HAUTEUR DU DIALOGUE → elle en découle. La fenêtre est en
+           SizeToContent="Height" : elle mesure son contenu et s'y ajuste. Rien
+           à régler, donc, et rien à corriger quand un champ s'ajoute.
+
+        Ces styles portent une clé (x:Key) et s'appliquent donc explicitement.
+        Sans clé, un style vaudrait pour TOUS les contrôles du même type dans
+        l'application — y compris ceux que Syncfusion place dans ses grilles,
+        qui se retrouveraient hauts de 30 px sans qu'on comprenne pourquoi.
+    -->
+
+    <Style x:Key="Champ" TargetType="TextBox">
+        <Setter Property="Height" Value="30" />
+        <Setter Property="Padding" Value="8,0" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="BorderBrush" Value="{StaticResource Trait}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Background" Value="{StaticResource Surface}" />
+    </Style>
+
+    <!-- Le pendant du précédent pour les listes ouvertes à la saisie. Il existe
+         pour une raison simple : ces trois valeurs étaient recopiées sur chaque
+         ComboBox du formulaire, si bien que « réduire la hauteur des contrôles »
+         obligeait à les retrouver toutes — et à en oublier une. -->
+    <Style x:Key="ChampListe" TargetType="ComboBox">
+        <Setter Property="Height" Value="30" />
+        <Setter Property="IsEditable" Value="True" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <!-- Liste FERMÉE : on choisit dans le lot, on n'invente pas. Dérivée de la
+         précédente pour n'avoir qu'une hauteur à régler, et non deux qui
+         finiraient par diverger. -->
+    <Style x:Key="ChampListeFermee" TargetType="ComboBox" BasedOn="{StaticResource ChampListe}">
+        <Setter Property="IsEditable" Value="False" />
+    </Style>
+
+    <!-- L'intervalle entre deux champs : ici, et nulle part ailleurs. -->
+    <Style x:Key="BlocChamp" TargetType="StackPanel">
+        <Setter Property="Margin" Value="0,0,0,10" />
+    </Style>
+
+    <Style x:Key="EtiquetteChamp" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource TexteDoux}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Margin" Value="0,0,0,2" />
+    </Style>
+
+    <!--
+        Le message d'erreur sous un champ — et l'explication de l'écart que vous
+        avez remarqué entre « Titre » et « Série ».
+
+        Un TextBlock VIDE occupe quand même la hauteur d'une ligne : WPF le
+        mesure d'après sa police, pas d'après son contenu. Le message d'erreur du
+        titre réservait donc en permanence une quinzaine de pixels sous le champ,
+        alors qu'il n'affiche presque jamais rien — d'où un intervalle plus large
+        à cet endroit qu'ailleurs.
+
+        Le déclencheur le replie quand le texte est vide. Collapsed, et non
+        Hidden : Hidden rend invisible mais GARDE la place, ce qui ne changerait
+        rien au problème.
+    -->
+    <!-- Message d'information, même repli que le précédent quand il est vide.
+         Il en existe deux plutôt qu'un seul paramétrable par la couleur : un
+         « rien trouvé » n'est pas une erreur, et le teindre en rouge ferait
+         croire à une panne là où il n'y a qu'une notice absente. -->
+    <Style x:Key="MessageInfo" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource TexteDoux}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Style.Triggers>
+            <Trigger Property="Text" Value="">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Zone de texte à plusieurs lignes. AcceptsReturn seul ne suffit pas :
+         sans TextWrapping, une phrase longue file en une seule ligne vers la
+         droite au lieu de revenir, et sans la barre de défilement le texte qui
+         dépasse la hauteur devient inatteignable. Les trois vont ensemble. -->
+    <Style x:Key="ChampMultiligne" TargetType="TextBox" BasedOn="{StaticResource Champ}">
+        <Setter Property="Height" Value="66" />
+        <!-- Fait aussi que la touche Entrée passe à la ligne au lieu de
+             déclencher « Enregistrer » : le bouton est IsDefault, et sans cela
+             le dialogue se fermerait au premier retour chariot. -->
+        <Setter Property="AcceptsReturn" Value="True" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="VerticalContentAlignment" Value="Top" />
+        <Setter Property="Padding" Value="8,5" />
+        <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+        <Setter Property="SpellCheck.IsEnabled" Value="True" />
+        <Setter Property="Language" Value="fr-FR" />
+    </Style>
+
+    <Style x:Key="MessageErreur" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource Rouge}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,3,0,0" />
+        <Style.Triggers>
+            <Trigger Property="Text" Value="">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ================================================================
+         Grilles
+
+         UN SEUL style pour toutes les SfDataGrid de l'application. Les
+         réglages d'aspect posés au fil des pages divergent : la Bibliothèque
+         finirait rayée et les Séries non, sans que personne se rappelle
+         laquelle est la bonne.
+
+         Ce que ce style décide, et pourquoi :
+
+         • GridLinesVisibility="Vertical" — le trait HORIZONTAL disparaît, le
+           vertical reste. Deux marqueurs de ligne valent moins qu'un seul :
+           la couleur alternée sépare déjà les lignes, et le filet en plus
+           quadrille la grille au lieu de la découper. Les traits de colonnes,
+           eux, restent utiles — ils alignent l'œil sur des valeurs courtes
+           (année, tome) que rien d'autre ne cadre.
+
+         • AlternationCount="2" + fond ardoise très dilué. L'ardoise plutôt
+           qu'un gris neutre : c'est la couleur de l'application, et une
+           bibliothèque à 7 000 lignes se parcourt à l'horizontale — sans
+           repère, l'œil change de ligne au milieu du balayage.
+
+         L'opacité de la brosse est faible À DESSEIN : une bande visible
+         attire le regard sur elle-même. Elle doit se remarquer quand on suit
+         une ligne, et disparaître quand on lit une cellule.
+         ================================================================ -->
+    <SolidColorBrush x:Key="LigneAlternee" Color="{StaticResource ArdoiseColor}" Opacity="0.06" />
+
+    <Style x:Key="Grille" TargetType="syncfusion:SfDataGrid">
+        <Setter Property="AutoGenerateColumns" Value="False" />
+        <Setter Property="AllowSorting" Value="True" />
+        <Setter Property="AllowResizingColumns" Value="True" />
+        <Setter Property="SelectionMode" Value="Single" />
+        <Setter Property="ColumnSizer" Value="Star" />
+        <Setter Property="HeaderRowHeight" Value="34" />
+        <Setter Property="RowHeight" Value="30" />
+        <Setter Property="BorderThickness" Value="0" />
+
+        <Setter Property="GridLinesVisibility" Value="Vertical" />
+        <Setter Property="AlternationCount" Value="2" />
+        <Setter Property="AlternatingRowStyle">
+            <Setter.Value>
+                <!-- VirtualizingCellsControl est le contrôle de LIGNE de
+                     SfDataGrid : c'est lui que la grille instancie par
+                     enregistrement, et le seul type que ce Style accepte.
+                     Viser Border ou Control ne lèverait aucune erreur — le
+                     style ne s'appliquerait simplement jamais. -->
+                <Style TargetType="syncfusion:VirtualizingCellsControl">
+                    <Setter Property="Background" Value="{StaticResource LigneAlternee}" />
+                </Style>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

@@ -1,0 +1,180 @@
+<UserControl x:Class="Exlibris.Vues.BibliothequeVue"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Exlibris.ViewModels"
+             xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+             mc:Ignorable="d" d:DesignWidth="900"
+             d:DataContext="{d:DesignInstance vm:BibliothequeViewModel}">
+
+    <Border Style="{StaticResource Carte}">
+        <DockPanel>
+
+            <!-- Barre de filtres, calquée sur celle du Catalogue de Lirevia :
+                 recherche à gauche, actions à droite, tout sur le même axe. -->
+            <Grid DockPanel.Dock="Top" Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" MaxWidth="420" HorizontalAlignment="Left">
+                    <TextBlock Text="Rechercher (titre, série, auteur, ISBN)"
+                               Style="{StaticResource EtiquetteChamp}" />
+                    <TextBox Style="{StaticResource Champ}"
+                             Text="{Binding Recherche, UpdateSourceTrigger=PropertyChanged, Delay=250}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom">
+
+                    <!-- Le sélecteur de colonnes.
+
+                         Un Popup et non une fenêtre : on vient y cocher deux
+                         cases et retourner à la liste. Un dialogue modal
+                         imposerait une validation dont il n'y a rien à valider.
+                         StaysOpen="False" le referme au premier clic ailleurs,
+                         qui est le geste attendu.
+
+                         Un Button ordinaire plutôt qu'un ToggleButton : les
+                         styles de l'application visent Button, et un
+                         ToggleButton s'afficherait avec l'aspect par défaut de
+                         Windows au milieu des autres. -->
+                    <Button x:Name="BoutonColonnes" Style="{StaticResource BoutonSecondaire}"
+                            Content="Colonnes" Margin="0,0,8,0"
+                            Click="OuvrirColonnes"
+                            ToolTip="Choisir les colonnes affichées" />
+
+                    <Popup x:Name="PopupColonnes"
+                           PlacementTarget="{Binding ElementName=BoutonColonnes}"
+                           Placement="Bottom" StaysOpen="False" AllowsTransparency="True"
+                           HorizontalOffset="-8" VerticalOffset="4">
+                        <!-- La marge de la bordure laisse la place à son ombre
+                             portée : la fenêtre du popup s'ajuste au contenu et
+                             la rognerait sinon. -->
+                        <Border Style="{StaticResource Carte}" Margin="8" MinWidth="190">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource Legende}" Text="Colonnes affichées"
+                                           Margin="0,0,0,8" />
+
+                                <!-- IsEnabled sur la NÉGATION du verrou : la
+                                     dernière colonne visible reste cochée et ne
+                                     se décoche plus. Une grille sans aucune
+                                     colonne n'affiche rien — pas même un moyen
+                                     d'en rétablir une. -->
+                                <ItemsControl x:Name="ListeColonnes">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <CheckBox Content="{Binding Libelle}"
+                                                      IsChecked="{Binding Visible}"
+                                                      IsEnabled="{Binding Verrouille,
+                                                                  Converter={StaticResource NonVrai}}"
+                                                      Margin="0,3" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+
+                    <!-- Modifier et Supprimer se grisent sans sélection : le
+                         bouton dit ce qui est possible, plutôt que d'échouer
+                         après le clic. -->
+                    <Button Style="{StaticResource BoutonSecondaire}" Content="Modifier"
+                            Margin="0,0,8,0"
+                            Command="{Binding ModifierCommand}"
+                            IsEnabled="{Binding Selection, Converter={StaticResource NonNul}}" />
+                    <Button Style="{StaticResource BoutonFermer}" Content="Supprimer" Margin="0,0,8,0"
+                            Command="{Binding SupprimerCommand}"
+                            IsEnabled="{Binding Selection, Converter={StaticResource NonNul}}" />
+                    <Button Style="{StaticResource BoutonPrincipal}" Content="Nouvel ouvrage"
+                            Command="{Binding NouvelOuvrageCommand}" />
+                </StackPanel>
+            </Grid>
+
+            <TextBlock DockPanel.Dock="Bottom" Text="{Binding Resume}"
+                       Style="{StaticResource Aide}" Margin="0,8,0,0" />
+
+            <!--
+                La pagination.
+
+                ⚠️ EnableGridPaging, et ce n'est pas décoratif. Sans lui, la
+                grille ne voit QUE la page courante : trier sur « Titre »
+                classerait les vingt-cinq lignes affichées entre elles, et le
+                A de la page 2 resterait derrière le Z de la page 1. Avec, le
+                tri et les filtres portent sur la collection entière et la
+                pagination se refait ensuite — le seul comportement auquel on
+                s'attende.
+
+                PageSize à 50 : au-delà, le paginateur ne se déclenche jamais
+                sur une bibliothèque ordinaire et n'est qu'un ornement ; en
+                deçà, on tourne la page en plein balayage. Une seule valeur à
+                changer si l'usage dit autre chose.
+
+                Le compte sous la grille reste le TOTAL, pas celui de la page :
+                « 35 ouvrages » répond à la question qu'on se pose, « 25 »
+                répondrait à une question que personne ne pose.
+            -->
+            <syncfusion:SfDataPager x:Name="Paginateur" DockPanel.Dock="Bottom"
+                                    Margin="0,10,0,0" HorizontalAlignment="Center"
+                                    PageSize="50"
+                                    EnableGridPaging="True"
+                                    Source="{Binding Livres}"
+                                    NumericButtonCount="7"
+                                    AutoEllipsisMode="Both" />
+
+            <!-- SfDataGrid : elle avale les 7 000 lignes sans réglage
+                 particulier, et c'est la raison du choix de WPF.
+
+                 AutoGenerateColumns à False : les colonnes générées suivraient
+                 l'ordre des propriétés du modèle et exposeraient les
+                 identifiants techniques. -->
+            <syncfusion:SfDataGrid x:Name="Grille"
+                                   Style="{StaticResource Grille}"
+                                   ItemsSource="{Binding PagedSource, ElementName=Paginateur}"
+                                   SelectedItem="{Binding Selection, Mode=TwoWay}"
+                                   AllowFiltering="True"
+                                   MouseDoubleClick="ModifierAuDoubleClic">
+                <syncfusion:SfDataGrid.Columns>
+                    <!-- TitreComplet, et non Titre : « La magicienne trahie »
+                         seul ne dit ni la série ni le rang. Sur 5 000 albums,
+                         la liste deviendrait illisible. -->
+                    <syncfusion:GridTextColumn MappingName="TitreComplet" HeaderText="Titre" />
+                    <syncfusion:GridTextColumn MappingName="Auteurs" HeaderText="Auteurs" Width="200" />
+                    <syncfusion:GridTextColumn MappingName="EditeurNom" HeaderText="Éditeur" Width="150" />
+                    <syncfusion:GridTextColumn MappingName="GenreNom" HeaderText="Genre" Width="130" />
+                    <syncfusion:GridTextColumn MappingName="ClassementNom" HeaderText="Ma catégorie" Width="130" />
+                    <syncfusion:GridTextColumn MappingName="Rangement" HeaderText="Rangement" Width="160" />
+                    <!-- Colonne masquée plutôt que retirée : SfDataGrid sait la
+                         replier, et la reconstruire à chaque bascule du réglage
+                         coûterait la position et la largeur choisies par
+                         l'utilisateur sur toutes les autres.
+
+                         ⚠️ IsHidden N'EST PLUS LIÉ ICI, et c'est délibéré. Le
+                         sélecteur de colonnes écrit cette même propriété ; une
+                         liaison plus une écriture locale, et la liaison meurt
+                         en silence — le réglage « Propriétaire » cesserait de
+                         commander la colonne dès la première visite du menu.
+                         Un seul endroit décide désormais : SelecteurColonnes,
+                         qui reçoit le réglage en entrée. -->
+                    <syncfusion:GridTextColumn MappingName="ProprietaireNom" HeaderText="Propriétaire"
+                                               Width="120" />
+                    <!-- Année CENTRÉE, en-tête compris.
+
+                         Une colonne numérique s'aligne à droite par défaut, ce
+                         qui a un sens quand on compare des ordres de grandeur —
+                         des prix, des poids. Une année a toujours quatre
+                         chiffres : l'alignement à droite ne fait rien gagner et
+                         décolle la valeur de son en-tête. TextAlignment vise la
+                         cellule, HorizontalHeaderContentAlignment le titre ; ne
+                         poser que le premier laisserait l'en-tête décalé. -->
+                    <syncfusion:GridNumericColumn MappingName="Annee" HeaderText="Année" Width="80"
+                                                  NumberDecimalDigits="0"
+                                                  TextAlignment="Center"
+                                                  HorizontalHeaderContentAlignment="Center" />
+                    <syncfusion:GridCheckBoxColumn MappingName="Lu" HeaderText="Lu" Width="60" />
+                </syncfusion:SfDataGrid.Columns>
+            </syncfusion:SfDataGrid>
+        </DockPanel>
+    </Border>
+</UserControl>

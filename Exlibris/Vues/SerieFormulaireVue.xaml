@@ -1,0 +1,56 @@
+<UserControl x:Class="Exlibris.Vues.SerieFormulaireVue"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Exlibris.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="440"
+             d:DataContext="{d:DesignInstance vm:SerieFormulaireViewModel}">
+
+    <!--
+        Aucune hauteur ni marge écrite ici : tout vient des styles Champ /
+        BlocChamp de Theme/Styles.xaml, comme dans le formulaire d'ouvrage.
+    -->
+    <StackPanel Width="400">
+
+        <!-- L'état actuel EN TÊTE, et en lecture seule. On ouvre ce dialogue
+             pour renseigner un nombre ; encore faut-il voir ce qu'il changera.
+             Rappeler « vous en possédez 12, il manque le 4 » évite d'aller
+             rouvrir la grille derrière la fenêtre modale. -->
+        <Border Background="{StaticResource Fond}" CornerRadius="4" Padding="12,10"
+                Margin="0,0,0,16">
+            <StackPanel>
+                <TextBlock Style="{StaticResource Legende}" Text="Actuellement" />
+                <TextBlock Style="{StaticResource Aide}" Margin="0,4,0,0">
+                    <Run Text="{Binding Possedes, Mode=OneWay}" />
+                    <Run Text="tome(s) possédé(s)" />
+                </TextBlock>
+                <TextBlock Style="{StaticResource Aide}">
+                    <Run Text="Manquants :" />
+                    <Run Text="{Binding ResumeManquants, Mode=OneWay}" FontWeight="SemiBold" />
+                </TextBlock>
+            </StackPanel>
+        </Border>
+
+        <StackPanel Style="{StaticResource BlocChamp}">
+            <TextBlock Style="{StaticResource EtiquetteChamp}" Text="Nombre de tomes de la série" />
+            <TextBox Style="{StaticResource Champ}" Width="90" HorizontalAlignment="Left"
+                     Text="{Binding TomesAnnonces, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBlock Style="{StaticResource Aide}" Margin="0,4,0,0"
+                       Text="Laissez vide si vous ne le savez pas : seuls les trous intérieurs seront alors détectés." />
+        </StackPanel>
+
+        <StackPanel Style="{StaticResource BlocChamp}">
+            <CheckBox Content="Série terminée" IsChecked="{Binding Terminee}" />
+            <TextBlock Style="{StaticResource Aide}" Margin="24,4,0,0"
+                       Text="Distingue « il me manque la fin » de « la suite n'est pas encore parue »." />
+        </StackPanel>
+
+        <StackPanel Style="{StaticResource BlocChamp}">
+            <TextBlock Style="{StaticResource EtiquetteChamp}" Text="Note" />
+            <TextBox Style="{StaticResource ChampMultiligne}" Height="70"
+                     Text="{Binding Note, UpdateSourceTrigger=PropertyChanged}" />
+        </StackPanel>
+
+    </StackPanel>
+</UserControl>

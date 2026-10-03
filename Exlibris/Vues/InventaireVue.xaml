@@ -1,0 +1,108 @@
+<UserControl x:Class="Exlibris.Vues.InventaireVue"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Exlibris.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="900"
+             d:DataContext="{d:DesignInstance vm:InventaireViewModel}">
+
+    <!-- Deux étapes, deux cartes, dans l'ordre où on les fait. L'import est
+         instantané ; la complétion dure plusieurs minutes. Les réunir derrière
+         un seul bouton ferait croire à un blocage au premier gros fichier. -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ===== 1. Verser le fichier ===== -->
+        <Border Grid.Row="0" Style="{StaticResource Carte}" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" MaxWidth="620" HorizontalAlignment="Left">
+                    <TextBlock Text="1. Verser un inventaire" Style="{StaticResource TitreCarte}" />
+                    <TextBlock Style="{StaticResource Aide}" Margin="0,2,0,0"
+                               Text="Le fichier produit par le scanner : un ISBN et un rangement par ligne. Chaque ouvrage entre avec son emplacement, mais sans titre — celui-ci viendra de l'étape 2. Un ISBN déjà connu est ignoré : réimporter le même fichier ne duplique rien." />
+                </StackPanel>
+
+                <Button Grid.Column="1" Content="Choisir un fichier…"
+                        Style="{StaticResource BoutonPrincipal}" Height="30"
+                        VerticalAlignment="Center"
+                        Command="{Binding ImporterCommand}"
+                        IsEnabled="{Binding EnCours, Converter={StaticResource NonVrai}}" />
+            </Grid>
+        </Border>
+
+        <!-- ===== 2. Compléter ===== -->
+        <Border Grid.Row="1" Style="{StaticResource Carte}" Margin="0,0,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Grid.Column="0" MaxWidth="620" HorizontalAlignment="Left">
+                    <TextBlock Text="2. Compléter les fiches" Style="{StaticResource TitreCarte}" />
+                    <TextBlock Style="{StaticResource Aide}" Margin="0,2,0,0"
+                               Text="Titre, auteurs, éditeur, genre et couverture sont cherchés par ISBN. Comptez une demi-seconde par ouvrage : les sources sont gratuites et publiques, les marteler ferait bannir votre adresse. Vous pouvez arrêter et reprendre plus tard, rien n'est perdu." />
+                </StackPanel>
+
+                <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <!-- « Arrêter » ne paraît que pendant le traitement : un bouton
+                         gris en permanence apprend à ne plus le regarder. -->
+                    <Button Content="Arrêter" Style="{StaticResource BoutonFermer}"
+                            Height="30" Margin="0,0,8,0"
+                            Command="{Binding ArreterCommand}"
+                            Visibility="{Binding EnCours, Converter={StaticResource VraiVersVisible}}" />
+
+                    <Button Content="Compléter" Style="{StaticResource BoutonPrincipal}" Height="30"
+                            Command="{Binding CompleterCommand}"
+                            IsEnabled="{Binding EnCours, Converter={StaticResource NonVrai}}" />
+                </StackPanel>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                           Style="{StaticResource Legende}" Margin="0,10,0,0"
+                           Text="{Binding Resume}" />
+            </Grid>
+        </Border>
+
+        <!-- ===== Le journal =====
+             Le seul retour pendant plusieurs minutes. Une barre qui avance sans
+             rien dire laisse croire à un blocage ; une ligne par ouvrage montre
+             ce qui se passe, et laisse repérer au passage un titre qui n'est
+             visiblement pas le bon. -->
+        <Border Grid.Row="2" Style="{StaticResource Carte}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="Déroulement"
+                           Style="{StaticResource TitreCarte}" />
+
+                <ListBox ItemsSource="{Binding Journal}"
+                         BorderThickness="0" Background="Transparent"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="0,1" />
+                            <Setter Property="Focusable" Value="False" />
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" FontSize="12.5" TextWrapping="Wrap" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

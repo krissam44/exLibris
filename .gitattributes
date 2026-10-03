@@ -1,0 +1,5 @@
+# Scripts et lanceurs destinés à Linux : toujours LF, quel que soit le poste.
+# Avec core.autocrlf=true, ils sortiraient en CRLF et bash refuserait de les
+# exécuter (« $'\r': command not found »).
+*.sh       text eol=lf
+*.desktop  text eol=lf

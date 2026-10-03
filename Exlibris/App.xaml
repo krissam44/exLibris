@@ -1,0 +1,30 @@
+﻿<Application x:Class="Exlibris.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:Exlibris.Convertisseurs">
+
+    <!-- Pas de StartupUri : la fenêtre est construite par le conteneur
+         d'injection dans App.xaml.cs, pour qu'elle reçoive son ViewModel et,
+         plus tard, ses dépôts. Le laisser ici en ouvrirait une SECONDE, sans
+         DataContext — une fenêtre vide par-dessus la vraie. -->
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Les couleurs D'ABORD : les styles s'y réfèrent par
+                     StaticResource, qui est résolu à l'analyse. Dans l'autre
+                     ordre, l'application ne démarre pas. -->
+                <ResourceDictionary Source="Theme/Couleurs.xaml" />
+                <ResourceDictionary Source="Theme/Styles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Déclaré au niveau de l'application : un convertisseur est sans
+                 état, une seule instance suffit à toutes les vues. -->
+            <conv:NonNulConverter x:Key="NonNul" />
+            <conv:NonVraiConverter x:Key="NonVrai" />
+            <conv:ImageFichierConverter x:Key="ImageFichier" />
+            <conv:NonNulVersVisibleConverter x:Key="NonNulVersVisible" />
+            <conv:VraiVersVisibleConverter x:Key="VraiVersVisible" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

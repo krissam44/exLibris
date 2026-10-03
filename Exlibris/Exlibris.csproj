@@ -1,0 +1,56 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Exlibris.Data\Exlibris.Data.csproj" />
+    <ProjectReference Include="..\Exlibris.Shared\Exlibris.Shared.csproj" />
+  </ItemGroup>
+
+  <!-- L'icône est aussi une RESSOURCE, et pas seulement l'icône du binaire :
+       la fenêtre la charge par une URI pack:// pour l'afficher dans son
+       bandeau. Déclarée uniquement en ApplicationIcon, elle serait dans le
+       .exe mais introuvable au chargement de la fenêtre. -->
+  <ItemGroup>
+    <Resource Include="Assets\exlibris.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
+    <PackageReference Include="Syncfusion.SfGrid.WPF" Version="34.2.5" />
+    <PackageReference Include="Syncfusion.Shared.WPF" Version="34.2.5" />
+  </ItemGroup>
+
+  <!-- Les deux fichiers de configuration suivent l'exécutable : appsettings.json
+       porte la structure et des valeurs vides, appsettings.Local.json les vraies
+       clés. Le second n'est pas versionné (voir le .gitignore à la racine). -->
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="appsettings.Local.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+
+    <!-- La version, en UN seul endroit. L'installateur la lit dans l'exécutable
+         (voir installateur/Exlibris.iss) : recopiée là-bas, elle finirait par
+         diverger, et c'est l'installateur qui aurait tort — celui qui compare
+         les numéros pour décider d'une mise à jour. -->
+    <Version>0.2.1</Version>
+
+    <!-- L'icône de l'exécutable : celle que montrent l'explorateur, la barre
+         des tâches et Alt+Tab. Elle porte sept tailles, de 16 à 256 px ; sans
+         la plus petite, Windows réduirait la grande et l'afficherait floue. -->
+    <ApplicationIcon>Assets\exlibris.ico</ApplicationIcon>
+  </PropertyGroup>
+
+</Project>

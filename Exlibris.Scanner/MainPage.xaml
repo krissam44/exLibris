@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage x:Class="Exlibris.Scanner.MainPage"
+             xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:scanner="clr-namespace:BarcodeScanning;assembly=BarcodeScanning.Native.Maui"
+             Title="Ex-libris — inventaire"
+             BackgroundColor="#0F1720">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- ===== Le rangement, EN HAUT et toujours visible =====
+             C'est le seul renseignement qu'aucune source ne donnera, et la faute
+             la plus coûteuse serait de scanner vingt livres sous l'emplacement
+             du meuble précédent. -->
+        <Border Grid.Row="0" BackgroundColor="#1E2A38" Stroke="Transparent"
+                Padding="16,12">
+            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto"
+                  ColumnSpacing="12" RowSpacing="4">
+
+                <Label Grid.Row="0" Grid.Column="0" Text="RANGEMENT"
+                       TextColor="#8FB0D8" FontSize="11"
+                       CharacterSpacing="2.5" FontAttributes="Bold" />
+
+                <Entry Grid.Row="1" Grid.Column="0" x:Name="ChampRangement"
+                       Placeholder="Salon, étagère 2"
+                       TextColor="White" PlaceholderColor="#5E7186"
+                       FontSize="18" TextChanged="RangementChange" />
+
+                <Label Grid.Row="2" Grid.Column="0" x:Name="LabelCompteur"
+                       TextColor="#C3D0DC" FontSize="14" />
+
+                <!-- La lampe : une étagère basse ou un fond de placard sont
+                     toujours dans l'ombre, et un code-barres mal éclairé ne se
+                     lit pas. À portée de pouce, pas dans un menu. -->
+                <Button Grid.Row="0" Grid.RowSpan="3" Grid.Column="1"
+                        x:Name="BoutonLampe" Text="🔦" FontSize="22"
+                        BackgroundColor="Transparent" TextColor="#8FB0D8"
+                        Clicked="BasculerLampe" VerticalOptions="Center" />
+            </Grid>
+        </Border>
+
+        <!-- ===== La caméra ===== -->
+        <Grid Grid.Row="1">
+            <!-- ⚠️ AUCUNE RESTRICTION DE SYMBOLOGIE, et c'est un correctif.
+
+                 « BarcodeSymbologies="Ean13" » ne retenait que le bit 0x20 de
+                 l'énumération. Or celle-ci porte AUSSI une valeur « ISBN »
+                 (0x80000), bit distinct : tout code-barres que la plateforme
+                 classe ainsi — c'est-à-dire potentiellement chaque livre —
+                 était écarté avant d'atteindre notre code.
+
+                 Le filtre ne protégeait d'ailleurs rien : le tri se fait dans
+                 MainPage.TraiterAsync, sur le préfixe Bookland ET la clé de
+                 contrôle. Une symbologie, elle, laissait entrer tous les
+                 EAN-13, y compris ceux qui ne désignent aucun livre.
+
+                 PauseScanning="True" au départ : L'ANALYSE NE TOURNE QUE SUR
+                 DEMANDE — ou en continu, si le mode « à la volée » est choisi. Voir
+                 ToucherMire, dans le code-behind.
+
+                 CaptureQuality "Highest" et non "High" : on n'analyse plus en
+                 continu, la dépense d'images ne coûte donc plus le rythme du
+                 scan — et un code-barres de poche, imprimé petit sous un film
+                 brillant, se joue au nombre de pixels qui le couvrent. -->
+            <scanner:CameraView x:Name="Camera"
+                                OnDetectionFinished="CodeDetecte"
+                                CaptureQuality="Highest"
+                                PauseScanning="True"
+                                AimMode="True"
+                                ViewfinderMode="True"
+                                VibrationOnDetected="False"
+                                TapToFocusEnabled="True" />
+
+            <!-- ===== La mire =====
+                 ⚠️ SA FORME EST UNE INSTRUCTION, et l'ancienne se trompait.
+
+                 « AimMode » ne retient qu'un code-barres contenant le CENTRE de
+                 l'image — le point rouge. Le cadre précédent, 270 × 170, avait
+                 la forme d'une couverture : on y posait le livre entier, le
+                 point rouge tombait sur l'illustration ou sur l'étiquette de
+                 prix, et l'EAN, pourtant net et dans le cadre, était écarté.
+                 Voilà les non-lectures constatées en librairie le 31/08/2026.
+
+                 Cette bande a les proportions d'un code-barres : la remplir,
+                 c'est mettre le point rouge dessus. Les deux consignes n'en
+                 font plus qu'une.
+
+                 AimMode est conservé DÉLIBÉRÉMENT : sur un comptoir où les
+                 livres s'amoncellent, une détection large lirait celui du
+                 dessous, et un inventaire pollué se paie plus cher que
+                 quelques scans à reprendre.
+
+                 LE CADRE EST LE DÉCLENCHEUR (11/09/2026) : un toucher arme le
+                 scan, ou le met en pause à la volée. On tient le livre d'une
+                 main, le téléphone de l'autre, l'index sur le cadre.
+
+                 La zone sensible DÉBORDE le trait dessiné : on vise sans
+                 regarder, et un toucher un peu à côté doit quand même
+                 déclencher. Hors de cette zone, toucher l'image fait toujours
+                 la mise au point. Le fond transparent est une précaution : une
+                 disposition sans fond peut ne recevoir aucun toucher selon la
+                 plateforme. -->
+            <Grid x:Name="ZoneMire"
+                  WidthRequest="300" HeightRequest="140"
+                  HorizontalOptions="Center" VerticalOptions="Center"
+                  BackgroundColor="Transparent">
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="ToucherMire" />
+                </Grid.GestureRecognizers>
+
+                <Border x:Name="Mire" InputTransparent="True"
+                        WidthRequest="250" HeightRequest="88"
+                        HorizontalOptions="Center" VerticalOptions="Center"
+                        BackgroundColor="#224A6C97"
+                        Stroke="#4A6C97" StrokeThickness="2.5"
+                        StrokeShape="RoundRectangle 10" />
+            </Grid>
+
+            <Label x:Name="LabelConsigne" InputTransparent="True"
+                   Text="Touchez le cadre pour scanner un livre"
+                   TextColor="#B8C4D0" FontSize="13"
+                   HorizontalTextAlignment="Center"
+                   HorizontalOptions="Center" VerticalOptions="Center"
+                   Margin="0,150,0,0" />
+
+            <!-- ===== Le journal =====
+                 Il flotte sur la caméra pour garder le viseur utilisable. Fond
+                 très opaque et bordure discrète : posé sur une image de rayonnage
+                 chargée, un fond translucide rendait le texte illisible. -->
+            <Border VerticalOptions="End" Margin="10" Padding="14,12"
+                    BackgroundColor="#F00F1720" Stroke="#33FFFFFF" StrokeThickness="1"
+                    StrokeShape="RoundRectangle 12">
+                <CollectionView x:Name="ListeScannes" MaximumHeightRequest="150">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <Label Text="{Binding .}" TextColor="#E8EDF2"
+                                   FontSize="14" Padding="0,3" />
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Border>
+        </Grid>
+
+        <!-- ===== Les actions ===== -->
+        <!-- Plus de bouton « Scanner un livre » (11/09/2026) : le geste répété
+             trois cents fois se fait désormais sur le cadre, à l'index, le livre
+             dans l'autre main. -->
+        <Grid Grid.Row="2" Padding="12,10" BackgroundColor="#1E2A38">
+
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+
+                <Button Grid.Column="0" Text="Saisir" Clicked="SaisirALaMain"
+                        BackgroundColor="#2C3E52" TextColor="#D6E1EC"
+                        Padding="16,0" HeightRequest="46" CornerRadius="8" />
+
+                <Button Grid.Column="1" x:Name="BoutonEnvoyer" Text="Envoyer le fichier"
+                        Clicked="Envoyer" BackgroundColor="#4A6C97" TextColor="White"
+                        HeightRequest="46" CornerRadius="8" />
+
+                <Button Grid.Column="2" Text="⋯" Clicked="Menu" FontSize="22"
+                        BackgroundColor="#2C3E52" TextColor="#D6E1EC"
+                        Padding="14,0" HeightRequest="46" CornerRadius="8" />
+            </Grid>
+        </Grid>
+
+    </Grid>
+</ContentPage>

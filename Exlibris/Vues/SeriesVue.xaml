@@ -1,0 +1,88 @@
+<UserControl x:Class="Exlibris.Vues.SeriesVue"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Exlibris.ViewModels"
+             xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+             mc:Ignorable="d" d:DesignWidth="900"
+             d:DataContext="{d:DesignInstance vm:SeriesViewModel}">
+
+    <Border Style="{StaticResource Carte}">
+        <DockPanel>
+
+            <!-- Même disposition que la Bibliothèque : titre et filtre à gauche,
+                 actions à droite, le tout sur un axe. Deux écrans de liste qui
+                 se ressemblent s'apprennent une seule fois. -->
+            <Grid DockPanel.Dock="Top" Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" VerticalAlignment="Bottom">
+                    <TextBlock Text="Séries et tomes manquants" Style="{StaticResource TitreCarte}" />
+                    <!-- « à compléter » et non « incomplètes » : le filtre
+                         retient aussi les séries dont on ignore le nombre de
+                         tomes. Elles ne manquent de rien par construction, et
+                         c'est précisément pour cela qu'elles appellent une
+                         saisie. -->
+                    <CheckBox Content="N'afficher que les séries à compléter" Margin="0,6,0,0"
+                              IsChecked="{Binding IncompletesSeulement}" />
+                </StackPanel>
+
+                <Button Grid.Column="1" Style="{StaticResource BoutonPrincipal}"
+                        Content="Renseigner la série" VerticalAlignment="Bottom"
+                        Command="{Binding ModifierCommand}"
+                        IsEnabled="{Binding Selection, Converter={StaticResource NonNul}}" />
+            </Grid>
+
+            <TextBlock DockPanel.Dock="Bottom" Text="{Binding Resume}"
+                       Style="{StaticResource Aide}" Margin="0,8,0,0" />
+
+            <!--
+                Le double-clic ouvre la même fiche que le bouton : renseigner une
+                série est le seul geste de cet écran, et on en enchaîne dix
+                d'affilée. Le bouton reste pour qui ne devine pas le double-clic.
+
+                Les colonnes sont en LECTURE SEULE, y compris « Terminée ». Une
+                case à cocher éditable dans la grille bascule au premier clic,
+                sans confirmation ni retour possible : un clic destiné à
+                sélectionner la ligne changerait l'état de la série, et rien à
+                l'écran ne le signalerait.
+            -->
+            <syncfusion:SfDataGrid Style="{StaticResource Grille}"
+                                   ItemsSource="{Binding Series}"
+                                   SelectedItem="{Binding Selection, Mode=TwoWay}"
+                                   MouseDoubleClick="ModifierAuDoubleClic">
+                <syncfusion:SfDataGrid.Columns>
+                    <syncfusion:GridTextColumn MappingName="Nom" HeaderText="Série" />
+
+                    <!-- Les manquants EN DEUXIÈME position, juste après le nom :
+                         c'est la seule colonne pour laquelle on ouvre cet écran.
+                         Reléguée à droite, elle serait la première tronquée au
+                         rétrécissement de la fenêtre. -->
+                    <syncfusion:GridTextColumn MappingName="ResumeManquants"
+                                               HeaderText="Tomes manquants" Width="240" />
+
+                    <syncfusion:GridTextColumn MappingName="Statut" HeaderText="État" Width="110" />
+
+                    <syncfusion:GridNumericColumn MappingName="NbPossedes" HeaderText="Possédés"
+                                                  Width="90" NumberDecimalDigits="0" />
+
+                    <!-- « Sur » et non « Tomes annoncés » : la colonne se lit
+                         dans le prolongement de la précédente — 12 possédés,
+                         sur 24 — et le libellé long imposait une largeur double
+                         de son contenu. -->
+                    <syncfusion:GridNumericColumn MappingName="TomesAnnonces" HeaderText="Sur"
+                                                  Width="70" NumberDecimalDigits="0" />
+
+                    <syncfusion:GridCheckBoxColumn MappingName="Terminee" HeaderText="Terminée"
+                                                   Width="90" />
+
+                    <syncfusion:GridTextColumn MappingName="Note" HeaderText="Note" Width="180" />
+                </syncfusion:SfDataGrid.Columns>
+            </syncfusion:SfDataGrid>
+        </DockPanel>
+    </Border>
+</UserControl>

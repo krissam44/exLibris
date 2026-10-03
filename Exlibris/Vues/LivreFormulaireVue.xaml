@@ -1,0 +1,277 @@
+<UserControl x:Class="Exlibris.Vues.LivreFormulaireVue"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Exlibris.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="600"
+             d:DataContext="{d:DesignInstance vm:LivreFormulaireViewModel}">
+
+    <!--
+        L'ordre des champs est celui de la SAISIE, pas celui de la base. On
+        commence par l'ISBN, parce qu'un code-barres trouvé remplit le reste ;
+        viennent ensuite l'identité de l'ouvrage, son rangement, puis la série.
+
+        Série et tome sont DESCENDUS sous le rangement à dessein : ils ne
+        concernent que la bande dessinée, et restent vides sur un roman. Placés
+        haut, ils faisaient sauter deux champs inutiles à chaque saisie.
+
+        Aucune hauteur ni aucune marge n'est écrite ici : tout vient des styles
+        Champ / ChampListe / BlocChamp de Theme/Styles.xaml. Une valeur posée en
+        dur dans cette page rouvrirait le problème qu'ils résolvent.
+    -->
+
+    <!-- Deux colonnes : la saisie, et la couverture qui l'accompagne.
+         L'image est à DROITE et non en tête : elle se regarde, elle ne se
+         remplit pas, et la placer sur le chemin du clavier ferait descendre
+         tous les champs de 200 px pour rien. -->
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="16" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <!-- La couverture, largeur fixe pour que la colonne de saisie ne se
+             mette pas à danser selon le format de l'image. Uniform : l'album à
+             l'italienne et le poche gardent leurs proportions. -->
+        <StackPanel Grid.Column="2" VerticalAlignment="Top">
+            <Button Style="{StaticResource BoutonSansDecor}"
+                    Command="{Binding AgrandirCouvertureCommand}"
+                    ToolTip="Cliquer pour agrandir">
+                <Border Width="132" Height="200"
+                        Background="{StaticResource Fond}"
+                        BorderBrush="{StaticResource Trait}" BorderThickness="1"
+                        CornerRadius="3">
+                    <Grid>
+                        <TextBlock Text="Pas de couverture" Style="{StaticResource Aide}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   TextAlignment="Center" />
+                        <Image Source="{Binding CheminCouverture, Converter={StaticResource ImageFichier}}"
+                               Stretch="Uniform" />
+                    </Grid>
+                </Border>
+            </Button>
+
+            <!-- L'invitation n'apparaît que s'il y a quelque chose à agrandir :
+                 proposer un clic sans effet apprend à ne plus essayer. -->
+            <TextBlock Text="Cliquer pour agrandir" Style="{StaticResource Aide}"
+                       HorizontalAlignment="Center" Margin="0,4,0,0"
+                       Visibility="{Binding CheminCouverture,
+                                    Converter={StaticResource NonNulVersVisible}}" />
+
+            <!-- Le chemin de secours pour les albums sans code-barres, qu'aucune
+                 source en ligne ne connaît. -->
+            <Button Content="Choisir une image…" Style="{StaticResource BoutonSecondaire}"
+                    Height="28" MinWidth="0" Margin="0,8,0,0" FontSize="12"
+                    HorizontalAlignment="Stretch"
+                    Command="{Binding ChoisirCouvertureCommand}" />
+        </StackPanel>
+
+        <StackPanel Grid.Column="0">
+
+        <!-- ISBN, année, et la recherche en ligne. Treize chiffres et un
+             millésime n'ont besoin ni l'un ni l'autre de toute la largeur : la
+             place qui reste va au bouton et à ce qu'il a à dire. -->
+        <Grid Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="200" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="110" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Grid.Column="0">
+                <TextBlock Text="ISBN" Style="{StaticResource EtiquetteChamp}" />
+                <TextBox Style="{StaticResource Champ}"
+                         Text="{Binding Isbn, UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+
+            <StackPanel Grid.Row="0" Grid.Column="2">
+                <TextBlock Text="Année" Style="{StaticResource EtiquetteChamp}" />
+                <TextBox Style="{StaticResource Champ}" Text="{Binding Annee}" />
+            </StackPanel>
+
+            <!-- Aligné sur le BAS des champs, et non sur le haut : c'est la
+                 ligne de saisie qu'il prolonge, pas l'étiquette. -->
+            <Button Grid.Row="0" Grid.Column="4" Content="Rechercher"
+                    Style="{StaticResource BoutonSecondaire}"
+                    Height="30" MinWidth="100" VerticalAlignment="Bottom"
+                    Command="{Binding RechercherCommand}"
+                    IsEnabled="{Binding RechercheEnCours, Converter={StaticResource NonVrai}}" />
+
+            <TextBlock Grid.Row="0" Grid.Column="5" Text="{Binding Avertissement}"
+                       Style="{StaticResource Legende}"
+                       VerticalAlignment="Bottom" Margin="12,0,0,6" />
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="6"
+                       Text="{Binding MessageRecherche}"
+                       Style="{StaticResource MessageInfo}" Margin="0,4,0,0" />
+        </Grid>
+
+        <StackPanel Style="{StaticResource BlocChamp}">
+            <TextBlock Text="Titre *" Style="{StaticResource EtiquetteChamp}" />
+            <TextBox Style="{StaticResource Champ}" MaxLength="255"
+                     Text="{Binding Titre, UpdateSourceTrigger=PropertyChanged}" />
+            <!-- Replié tant qu'il n'a rien à dire — voir le style. C'est ce qui
+                 creusait l'écart entre ce champ et « Série ». -->
+            <TextBlock Text="{Binding Erreur}" Style="{StaticResource MessageErreur}" />
+        </StackPanel>
+
+        <StackPanel Style="{StaticResource BlocChamp}">
+            <TextBlock Text="Auteurs" Style="{StaticResource EtiquetteChamp}" />
+            <TextBox Style="{StaticResource Champ}"
+                     Text="{Binding Auteurs, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBlock Style="{StaticResource Aide}" Margin="0,2,0,0"
+                       Text="Séparés par une virgule. Le rôle se précise plus tard, sur les séries qui comptent." />
+        </StackPanel>
+
+        <Grid Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="Éditeur" Style="{StaticResource EtiquetteChamp}" />
+                <ComboBox Style="{StaticResource ChampListe}"
+                          ItemsSource="{Binding Editeurs}"
+                          Text="{Binding Editeur, UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="Genre" Style="{StaticResource EtiquetteChamp}" />
+                <ComboBox Style="{StaticResource ChampListe}"
+                          ItemsSource="{Binding Genres}"
+                          Text="{Binding Genre, UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+        </Grid>
+
+        <!-- « Ma catégorie » suit immédiatement celle de l'éditeur : c'est
+             côte à côte que la différence se comprend, et que le fait de
+             corriger « Policier » en « Thriller » devient un geste évident. -->
+        <Grid Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Grid.Column="0">
+                <TextBlock Text="Ma catégorie" Style="{StaticResource EtiquetteChamp}" />
+                <ComboBox Style="{StaticResource ChampListe}"
+                          ItemsSource="{Binding Classements}"
+                          Text="{Binding Classement, UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+
+            <StackPanel Grid.Row="0" Grid.Column="2">
+                <TextBlock Text="Rangement" Style="{StaticResource EtiquetteChamp}" />
+                <ComboBox Style="{StaticResource ChampListe}"
+                          ItemsSource="{Binding Rangements}"
+                          Text="{Binding Rangement, UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                       Style="{StaticResource Aide}" Margin="0,2,0,0"
+                       Text="Ces deux listes se complètent en tapant : une valeur inconnue est créée à l'enregistrement." />
+        </Grid>
+
+        <!-- Le propriétaire, quand le réglage le demande. Toute la ligne
+             disparaît sinon : un formulaire qui montrerait une case grisée
+             ferait croire à un champ inaccessible plutôt qu'à une notion dont
+             on n'a pas l'usage. -->
+        <StackPanel Style="{StaticResource BlocChamp}"
+                    Visibility="{Binding ProprietairesActifs,
+                                 Converter={StaticResource VraiVersVisible}}">
+            <TextBlock Text="Propriétaire" Style="{StaticResource EtiquetteChamp}" />
+            <!-- Width, et non MaxWidth avec HorizontalAlignment="Left".
+
+                 MaxWidth ne pose qu'un PLAFOND : alignée à gauche, la liste se
+                 dimensionne alors sur son contenu, qui est vide sur une fiche
+                 neuve — elle se réduisait à sa seule flèche. Le piège ne se
+                 voit pas sur les autres champs du formulaire : ils sont étirés
+                 par leur colonne de grille, donc leur largeur ne dépend jamais
+                 de ce qu'ils contiennent. -->
+            <ComboBox Style="{StaticResource ChampListe}" Width="300"
+                      HorizontalAlignment="Left"
+                      ItemsSource="{Binding Proprietaires}"
+                      Text="{Binding Proprietaire, UpdateSourceTrigger=PropertyChanged}" />
+        </StackPanel>
+
+        <!-- Série et tome : le couple qui fait tout l'intérêt de l'application
+             pour une collection de bandes dessinées. -->
+        <Grid Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="90" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="Série" Style="{StaticResource EtiquetteChamp}" />
+                <!-- IsEditable vient du style : la liste propose l'existant, la
+                     frappe crée le reste. Une série inconnue ne doit pas
+                     obliger à passer par un écran de paramétrage au milieu
+                     d'une saisie. -->
+                <ComboBox Style="{StaticResource ChampListe}"
+                          ItemsSource="{Binding Series}"
+                          Text="{Binding Serie, UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="Tome" Style="{StaticResource EtiquetteChamp}" />
+                <TextBox Style="{StaticResource Champ}" Text="{Binding NumeroTome}" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Lecture et appréciation : ce qui distingue un catalogue personnel
+             d'un inventaire. -->
+        <Grid Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="24" />
+                <ColumnDefinition Width="130" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <CheckBox Grid.Column="0" Content="Lu" IsChecked="{Binding Lu}"
+                      VerticalAlignment="Bottom" Margin="0,0,0,7" />
+
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="Appréciation" Style="{StaticResource EtiquetteChamp}" />
+                <ComboBox Style="{StaticResource ChampListeFermee}"
+                          SelectedValue="{Binding Appreciation}" SelectedValuePath="Tag">
+                    <ComboBoxItem Content="—" />
+                    <ComboBoxItem Content="1" Tag="1" />
+                    <ComboBoxItem Content="2" Tag="2" />
+                    <ComboBoxItem Content="3" Tag="3" />
+                    <ComboBoxItem Content="4" Tag="4" />
+                    <ComboBoxItem Content="5" Tag="5" />
+                </ComboBox>
+            </StackPanel>
+        </Grid>
+
+        <!-- Le commentaire prend toute la largeur et plusieurs lignes : c'est
+             le seul champ où l'on écrit une phrase, et le seul qu'on relira
+             pour lui-même. Sur une seule ligne, un avis de lecture se tape en
+             regardant défiler le début de sa propre phrase. -->
+        <StackPanel>
+            <TextBlock Text="Commentaire" Style="{StaticResource EtiquetteChamp}" />
+            <TextBox Style="{StaticResource ChampMultiligne}"
+                     Text="{Binding Commentaire}" />
+        </StackPanel>
+
+        </StackPanel>
+    </Grid>
+</UserControl>

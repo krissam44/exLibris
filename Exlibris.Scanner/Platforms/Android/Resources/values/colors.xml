@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Les couleurs du SYSTÈME : barre d'état et barre de navigation. Elles ne
+    viennent pas de Colors.xaml, et c'est ce qui laissait un bandeau violet —
+    la couleur du modèle de projet — au-dessus d'une interface ardoise.
+-->
+<resources>
+    <color name="colorPrimary">#1E2A38</color>
+    <color name="colorPrimaryDark">#16202B</color>
+    <color name="colorAccent">#4A6C97</color>
+</resources>

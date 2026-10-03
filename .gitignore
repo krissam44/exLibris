@@ -1,0 +1,42 @@
+# ---- Secrets
+#
+# La règle qui compte : la vraie clé de licence vit ici et ne part jamais dans
+# le dépôt. appsettings.json, lui, est versionné — il porte la structure et des
+# valeurs vides, pour qu'on sache quoi remplir sur un poste neuf.
+appsettings.Local.json
+appsettings.*.Local.json
+
+# La signature de l'application Android : chemin du magasin de clés et mots de
+# passe. Le modèle signature.example.props, lui, est versionné.
+#
+# ⚠️ Le fichier .keystore lui-même n'a rien à faire ici NON PLUS — ni dans ce
+# dépôt, ni dans aucun autre. Il est irremplaçable : perdu, plus aucune mise à
+# jour ne peut s'installer par-dessus une version déjà posée sur un téléphone.
+# Sa place est dans votre sauvegarde personnelle.
+signature.props
+*.keystore
+*.jks
+
+# ---- Sorties de compilation
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+publish/
+installateur/*.exe
+
+# ---- Visual Studio
+.vs/
+*.user
+*.suo
+
+# ---- Base de données locale
+#
+# Le fichier de travail se crée dans les données d'application de l'utilisateur,
+# mais on écarte tout exemplaire égaré à la racine.
+*.db
+*.db-shm
+*.db-wal
+
+# ---- Résultats de tests
+TestResults/
