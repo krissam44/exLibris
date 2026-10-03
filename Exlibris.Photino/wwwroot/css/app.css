@@ -1,0 +1,105 @@
+/* Ex-libris — compléments au thème MudBlazor (MiseEnPage/Theme.cs).
+   Aucune couleur littérale : tout passe par les variables du thème. */
+
+:root {
+    --hauteur-pied: 30px;
+}
+
+html, body {
+    background: var(--mud-palette-background);
+}
+
+.chargement {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Roboto, Helvetica, Arial, sans-serif;
+    color: #5C5C5C;
+}
+
+/* ---------- Barre du haut ---------- */
+.barre .logo {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: #FFFFFF;
+    padding: 2px;
+    margin: 0 10px 0 6px;
+}
+
+.titre-barre {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.texte-barre {
+    font-size: 13px;
+    opacity: 0.85;
+}
+
+/* ---------- Menu latéral ----------
+   Le pied de page occupe toute la largeur, sous le menu : le tiroir s'arrête
+   donc au-dessus de lui plutôt que d'aller jusqu'en bas de la fenêtre. */
+.menu.mud-drawer {
+    height: auto !important;
+    bottom: var(--hauteur-pied) !important;
+    border-right: 1px solid var(--mud-palette-lines-default);
+}
+
+/* Liseré à gauche de l'entrée active : même repère que le menu de Lirevia
+   et que le WPF. */
+.menu .mud-nav-link.active {
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 var(--mud-palette-primary);
+}
+
+/* ---------- Contenu et pied ---------- */
+.contenu {
+    padding-bottom: var(--hauteur-pied);
+}
+
+.pied {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--hauteur-pied);
+    z-index: 1300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--mud-palette-appbar-background);
+    color: var(--mud-palette-appbar-text);
+    font-size: 12px;
+    opacity: 0.95;
+}
+
+/* ---------- Cartes : l'équivalent du style « Carte » du WPF ---------- */
+.carte {
+    padding: 16px;
+    border: 1px solid var(--mud-palette-lines-default);
+}
+
+.titre-carte {
+    color: var(--mud-palette-primary);
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.aide {
+    color: var(--mud-palette-text-secondary);
+    font-size: 12px;
+}
+
+/* Légende et libellés secondaires : l'orange de Lirevia. */
+.legende {
+    color: var(--mud-palette-secondary);
+    font-size: 12px;
+}
+
+.chiffre .valeur {
+    font-size: 26px;
+    font-weight: 600;
+}

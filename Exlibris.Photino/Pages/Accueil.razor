@@ -1,0 +1,33 @@
+@page "/"
+@inherits VueBase<AccueilViewModel>
+
+<MudPaper Elevation="1" Class="carte">
+    <div class="titre-carte">Votre bibliothèque</div>
+    <div class="aide">
+        Les quatre chiffres qu'on veut voir en ouvrant l'application. Le dernier dit
+        combien de fiches attendent encore d'être complétées par les bases publiques.
+    </div>
+
+    <MudGrid Spacing="3" Class="mt-2">
+        <MudItem xs="3" Class="chiffre">
+            <div class="legende">Ouvrages</div>
+            <div class="valeur">@Vm.NbLivres.ToString("N0")</div>
+        </MudItem>
+        <MudItem xs="3" Class="chiffre">
+            <div class="legende">Séries</div>
+            <div class="valeur">@Vm.NbSeries.ToString("N0")</div>
+        </MudItem>
+        <MudItem xs="3" Class="chiffre">
+            <div class="legende">Sans ISBN</div>
+            <div class="valeur">@Vm.NbSansIsbn.ToString("N0")</div>
+        </MudItem>
+        <MudItem xs="3" Class="chiffre">
+            <div class="legende">À compléter</div>
+            <div class="valeur">@Vm.NbNonEnrichis.ToString("N0")</div>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@code {
+    protected override void Arrivee() => Vm.Charger();
+}

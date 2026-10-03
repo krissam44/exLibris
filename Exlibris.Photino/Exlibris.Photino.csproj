@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <!-- Ex-libris en Photino.Blazor : la même application que le projet WPF,
+       mais pour Windows ET Linux. Les deux interfaces partagent Exlibris.Data
+       et Exlibris.Shared, donc la même base et les mêmes règles. -->
+
+  <PropertyGroup>
+    <!-- WinExe évite la console sous Windows ; ignoré sous Linux. -->
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Exlibris.Photino</RootNamespace>
+    <AssemblyName>Exlibris</AssemblyName>
+    <SatelliteResourceLanguages>fr</SatelliteResourceLanguages>
+    <ApplicationIcon>Assets\exlibris.ico</ApplicationIcon>
+
+    <!-- Même numéro que le projet WPF tant que les deux coexistent. -->
+    <Version>0.2.1</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Exlibris.Data\Exlibris.Data.csproj" />
+    <ProjectReference Include="..\Exlibris.Shared\Exlibris.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Photino.Blazor" Version="4.0.13" />
+    <!-- Photino.Blazor 4.0.13 ne cible que net8/net9 et tirerait WebView 9.0.x :
+         on remonte explicitement à la version alignée sur le runtime .NET 10. -->
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebView" Version="10.0.11" />
+    <PackageReference Include="MudBlazor" Version="9.8.0" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
+  </ItemGroup>
+
+  <!-- ViewModels du projet WPF repris TELS QUELS, par lien : une seule source
+       pour la logique d'écran tant que les deux interfaces coexistent. Seuls
+       ceux qui ne dépendent d'aucun type WPF peuvent être liés ; la liste
+       s'allonge à chaque étape du portage. -->
+  <ItemGroup>
+    <Compile Include="..\Exlibris\ViewModels\AccueilViewModel.cs" Link="ViewModels\AccueilViewModel.cs" />
+  </ItemGroup>
+
+  <!-- La configuration est celle du projet WPF : appsettings.json (versionné,
+       valeurs vides) et appsettings.Local.json (la vraie clé, non versionné). -->
+  <ItemGroup>
+    <None Include="..\Exlibris\appsettings.json" Link="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Exlibris\appsettings.Local.json" Link="appsettings.Local.json" CopyToOutputDirectory="PreserveNewest"
+          Condition="Exists('..\Exlibris\appsettings.Local.json')" />
+    <None Update="Assets\exlibris-256.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Assets\exlibris.ico" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="wwwroot\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

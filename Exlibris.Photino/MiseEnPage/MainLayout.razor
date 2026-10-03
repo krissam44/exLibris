@@ -1,0 +1,114 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject NavigationManager Navigation
+
+@* La coquille, calquée sur le WPF (lui-même calqué sur Lirevia) : barre du haut,
+   menu à gauche, contenu, pied de page. Le même bleu ardoise en haut et en bas
+   encadre la zone de travail. *@
+
+<MudThemeProvider Theme="Theme.Exlibris" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="0" Dense="true" Gutters="false" Class="barre">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit"
+                       Size="Size.Small" Class="ml-2"
+                       title="@(_menuReduit ? "Déplier le menu" : "Réduire le menu")"
+                       OnClick="() => _menuReduit = !_menuReduit" />
+        <img src="img/logo-72.png" alt="" class="logo" />
+        <span class="titre-barre">Ex-libris</span>
+
+        @* Le nom de la bibliothèque au centre, comme dans Lirevia : c'est le
+           repère qui dit « où suis-je ». *@
+        <MudSpacer />
+        <span class="titre-barre">@NomBibliotheque</span>
+        <MudSpacer />
+
+        <span class="texte-barre mr-4">@RubriqueActive?.Libelle</span>
+    </MudAppBar>
+
+    @* Variant Mini : réduit, le menu garde ses icônes — le « mini drawer » de
+       Lirevia. Sur un écran de portable, 176 px pris à la grille se remarquent. *@
+    <MudDrawer Open="!_menuReduit" Variant="DrawerVariant.Mini" ClipMode="DrawerClipMode.Always"
+               Elevation="0" Class="menu">
+        <MudNavMenu Class="pt-2">
+            @foreach (var rubrique in Rubriques)
+            {
+                <MudNavLink Href="@rubrique.Adresse" Icon="@rubrique.Icone"
+                            Match="@(rubrique.Adresse == "" ? NavLinkMatch.All : NavLinkMatch.Prefix)"
+                            title="@rubrique.Libelle">
+                    @rubrique.Libelle
+                </MudNavLink>
+            }
+        </MudNavMenu>
+    </MudDrawer>
+
+    <MudMainContent Class="contenu">
+        <div class="pa-4">
+            @Body
+        </div>
+    </MudMainContent>
+
+    <footer class="pied">@Version</footer>
+</MudLayout>
+
+@code {
+    /// <summary>Une entrée du menu : l'équivalent de Rubrique dans le WPF.</summary>
+    private sealed record Rubrique(string Libelle, string Icone, string Adresse);
+
+    // Les icônes Material remplacent Segoe MDL2 Assets, propre à Windows.
+    private static readonly Rubrique[] Rubriques =
+    [
+        new("Accueil",      Icons.Material.Outlined.Home,            ""),
+        new("Bibliothèque", Icons.Material.Outlined.LibraryBooks,    "bibliotheque"),
+        new("Séries",       Icons.Material.Outlined.ViewList,        "series"),
+        new("Inventaire",   Icons.Material.Outlined.QrCodeScanner,   "inventaire"),
+        new("Paramètres",   Icons.Material.Outlined.Settings,        "parametres"),
+    ];
+
+    private bool _menuReduit;
+
+    /// <summary>Nom de la bibliothèque, au centre de la barre — comme dans le WPF.</summary>
+    private const string NomBibliotheque = "Ma bibliothèque";
+
+    /// <summary>
+    /// La rubrique affichée, DÉDUITE de l'adresse. C'est l'adresse qui fait
+    /// autorité, comme RubriqueActive dans le WPF : une navigation déclenchée
+    /// ailleurs qu'au menu — un lien, un retour après enregistrement — met
+    /// quand même le libellé de la barre à jour.
+    /// </summary>
+    private Rubrique? RubriqueActive
+    {
+        get
+        {
+            var chemin = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0];
+            return Rubriques.Where(r => r.Adresse != "")
+                       .FirstOrDefault(r => chemin.StartsWith(r.Adresse, StringComparison.OrdinalIgnoreCase))
+                   ?? (chemin == "" ? Rubriques[0] : null);
+        }
+    }
+
+    /// <summary>
+    /// La version, LUE dans l'assembly plutôt qu'écrite ici — même raison que
+    /// MainViewModel.Version dans le WPF : une chaîne recopiée finit par mentir.
+    /// Coupée au « + », que le SDK ajoute avec le hachage du commit sous Git.
+    /// </summary>
+    private static readonly string Version = LireVersion();
+
+    private static string LireVersion()
+    {
+        var brute = typeof(MainLayout).Assembly
+            .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+            .OfType<System.Reflection.AssemblyInformationalVersionAttribute>()
+            .FirstOrDefault()?.InformationalVersion;
+        return string.IsNullOrWhiteSpace(brute) ? "Ex-libris" : $"Ex-libris — version {brute.Split('+')[0]}";
+    }
+
+    protected override void OnInitialized() => Navigation.LocationChanged += SurNavigation;
+
+    private void SurNavigation(object? sender, LocationChangedEventArgs e) => StateHasChanged();
+
+    public void Dispose() => Navigation.LocationChanged -= SurNavigation;
+}

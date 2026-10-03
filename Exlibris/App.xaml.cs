@@ -39,69 +39,13 @@ public partial class App : Application
 
         var services = new ServiceCollection();
 
-        // ----- La base
+        // ----- La base et les services de données
         //
-        // Dans les données d'application de l'utilisateur, jamais à côté de
-        // l'exécutable : « Program Files » est en lecture seule, et une base
-        // posée près du binaire disparaîtrait à la prochaine réinstallation.
-        var dossier = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Exlibris");
-        Directory.CreateDirectory(dossier);
-
-        var fabrique = new FabriqueConnexion(Path.Combine(dossier, "exlibris.db"));
-        // Les RENOMMAGES d'abord : le schéma recréerait sinon une table vide
-        // sous le nouveau nom, et le renommage suivant échouerait en
-        // laissant les données dans l'ancienne. Voir MigrationsPrealables.
-        fabrique.AppliquerMigrations(Schema.MigrationsPrealables());
-        fabrique.CreerSiNecessaire(Schema.Sql());
-
-        // Les colonnes ajoutées après coup. Indispensable ici et pas seulement
-        // sur une base neuve : le schéma est en « CREATE TABLE IF NOT EXISTS »,
-        // qui ne fait RIEN sur une table déjà présente. Sans cette ligne, une
-        // évolution marcherait sur une base vierge et échouerait sur la vôtre.
-        fabrique.AppliquerMigrations(Schema.Migrations());
-        services.AddSingleton(fabrique);
-        services.AddSingleton<LivreDepot>();
-        services.AddSingleton<ReferentielDepot>();
-
-        // Un SEUL HttpClient pour toute la vie de l'application. En créer un par
-        // recherche épuiserait les sockets — le défaut classique de HttpClient,
-        // qui ne se voit qu'après quelques centaines d'appels, donc exactement
-        // au moment où l'on enrichit un fonds par lots.
-        services.AddSingleton(new HttpClient
-        {
-            // Court volontairement : la saisie attend. Passé ce délai, taper le
-            // titre à la main est plus rapide que d'attendre la réponse.
-            Timeout = TimeSpan.FromSeconds(8),
-        });
-        // Construit à la main, et non résolu par type : le conteneur ne sait pas
-        // fournir une `string`, et un paramètre optionnel ne le sauve pas — il
-        // échouerait à la résolution, au premier clic sur « Rechercher ».
-        //
-        // Adresse VIDE par défaut : Ex-libris est destiné à être distribué, et
-        // ceux qui l'installeront n'ont pas de serveur Lirevia. La source est
-        // alors simplement sautée.
-        var adresseLirevia = configuration["Lirevia:ApiUrl"] ?? string.Empty;
-        services.AddSingleton(fournisseur => new NoticeEnLigneService(
-            fournisseur.GetRequiredService<HttpClient>(), adresseLirevia));
-        services.AddSingleton<CouvertureDepot>();
-        services.AddSingleton<ParametreDepot>();
-        services.AddSingleton<InventaireDepot>();
-
-        // CompletionParLot reçoit de quoi chercher et de quoi rapporter une
-        // image, plutôt que les services eux-mêmes : c'est ce qui permet à la
-        // suite de tests de lui fournir des notices toutes prêtes, sans
-        // réseau. Une fabrique et non un singleton — chaque traitement part
-        // avec son propre jeton d'annulation.
-        services.AddSingleton<Func<CompletionParLot>>(f => () => new CompletionParLot(
-            f.GetRequiredService<InventaireDepot>(),
-            f.GetRequiredService<LivreDepot>(),
-            f.GetRequiredService<ReferentielDepot>(),
-            chercher: (isbn, token) =>
-                f.GetRequiredService<NoticeEnLigneService>().ChercherAsync(isbn, token),
-            rapporterCouverture: (url, token) =>
-                f.GetRequiredService<CouvertureDepot>().TelechargerAsync(url, token)));
+        // Composition partagée avec l'interface Photino : voir
+        // Exlibris.Data.Composition pour l'ordre des migrations et le reste.
+        services.AddExlibrisDonnees(
+            Composition.DossierDonnees(),
+            configuration["Lirevia:ApiUrl"] ?? string.Empty);
 
         // L'ouverture de fenêtres passe par une interface : un ViewModel qui
         // construirait lui-même une Window deviendrait impossible à éprouver
@@ -125,18 +69,7 @@ public partial class App : Application
 
         _services = services.BuildServiceProvider();
 
-        // La nomenclature de genres, posée une seule fois — la méthode ne fait
-        // rien si la table contient déjà quelque chose. Voir
-        // ReferentielDepot.SemerGenresSiVide pour pourquoi ce n'est pas
-        // rejoué à chaque démarrage.
-        var referentiels = _services.GetRequiredService<ReferentielDepot>();
-        referentiels.SemerGenresSiVide();
-
-        // Rattrapage des clés d'éditeur, qui suivent désormais une règle plus
-        // large. Ne fait rien dès le deuxième lancement — mais l'oublier ferait
-        // créer un doublon à chaque notice, la nouvelle clé ne retrouvant pas
-        // l'ancienne. Voir RecalculerClesEditeurs.
-        referentiels.RecalculerClesEditeurs();
+        Composition.InitialiserReferentiels(_services);
 
         new MainWindow { DataContext = _services.GetRequiredService<MainViewModel>() }.Show();
     }

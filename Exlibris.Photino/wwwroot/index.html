@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ex-libris</title>
+    <base href="/" />
+    <!-- Aucune police chargée sur Internet : l'application doit démarrer pareil
+         hors ligne. MudBlazor demande Roboto et se rabat sur la police sans
+         empattement du système (Arial, DejaVu Sans…) quand elle est absente. -->
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    <link href="css/app.css" rel="stylesheet" />
+</head>
+<body>
+    <app>
+        <div class="chargement">Ex-libris…</div>
+    </app>
+
+    <script src="_framework/blazor.webview.js"></script>
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+</body>
+</html>
