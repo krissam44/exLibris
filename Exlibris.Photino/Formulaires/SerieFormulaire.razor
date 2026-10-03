@@ -1,0 +1,35 @@
+@inherits FormulaireBase<SerieFormulaireViewModel>
+
+@* Les trois renseignements qu'un humain seul peut donner sur une série —
+   pendant de SerieFormulaireVue.xaml. Le nom n'y figure qu'en titre : le
+   renommage passe par la réunion des libellés (Paramètres). *@
+
+<div class="formulaire-serie">
+
+    @* L'état actuel EN TÊTE, et en lecture seule : on ouvre ce dialogue pour
+       renseigner un nombre, encore faut-il voir ce qu'il changera. *@
+    <div class="etat-actuel">
+        <div class="legende">Actuellement</div>
+        <div class="aide mt-1">@Vm.Possedes tome(s) possédé(s)</div>
+        <div class="aide">Manquants : <strong>@Vm.ResumeManquants</strong></div>
+    </div>
+
+    <div class="bloc">
+        @* Du TEXTE et non un entier : vidé, un champ numérique rendrait 0 et
+           écraserait « je ne sais pas » par « série de zéro tome » — voir
+           SerieFormulaireViewModel. *@
+        <MudTextField T="string" Label="Nombre de tomes de la série" Value="Vm.TomesAnnonces"
+                      ValueChanged="v => Vm.TomesAnnonces = v ?? string.Empty"
+                      Immediate="true" Variant="Variant.Outlined" Margin="Margin.Dense"
+                      AutoFocus="true" Style="width: 220px" />
+        <div class="aide">Laissez vide si vous ne le savez pas : seuls les trous intérieurs seront alors détectés.</div>
+    </div>
+
+    <div class="bloc">
+        <MudCheckBox T="bool" Label="Série terminée" Value="Vm.Terminee" ValueChanged="v => Vm.Terminee = v" Dense="true" />
+        <div class="aide retrait">Distingue « il me manque la fin » de « la suite n'est pas encore parue ».</div>
+    </div>
+
+    <MudTextField T="string" Label="Note" Value="Vm.Note" ValueChanged="v => Vm.Note = v ?? string.Empty"
+                  Immediate="true" Lines="3" Variant="Variant.Outlined" Margin="Margin.Dense" />
+</div>

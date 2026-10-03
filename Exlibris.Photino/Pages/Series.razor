@@ -1,3 +1,118 @@
 @page "/series"
+@inherits VueBase<SeriesViewModel>
+@using System.Collections.Specialized
+@using Exlibris.Shared.Modeles
+@using Syncfusion.Blazor.Grids
 
-<AVenir Titre="Séries" Etape="4" />
+<MudPaper Elevation="1" Class="carte page-pleine">
+
+    @* Même disposition que la Bibliothèque : titre et filtre à gauche, action à
+       droite. Deux écrans de liste qui se ressemblent s'apprennent une fois. *@
+    <div class="barre-filtres">
+        <div>
+            <div class="titre-carte">Séries et tomes manquants</div>
+            @* « à compléter » et non « incomplètes » : le filtre retient aussi
+               les séries dont on ignore le nombre de tomes, qui appellent
+               justement une saisie. *@
+            <MudCheckBox T="bool" Value="Vm.IncompletesSeulement" ValueChanged="v => Vm.IncompletesSeulement = v"
+                         Label="N'afficher que les séries à compléter" Dense="true" />
+        </div>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="Vm.Selection is null"
+                   OnClick="() => Vm.ModifierCommand.ExecuteAsync(null)">
+            Renseigner la série
+        </MudButton>
+    </div>
+
+    <div class="zone-grille">
+        @* Pas de pagination, comme dans le WPF : quelques centaines de séries
+           tiennent dans une liste qu'on fait défiler.
+
+           Colonnes en LECTURE SEULE, « Terminée » comprise : une case éditable
+           basculerait au premier clic destiné à sélectionner la ligne. *@
+        <SfGrid @ref="_grille" TValue="Serie" DataSource="Lignes" Height="100%" Width="100%"
+                AllowSorting="true" AllowResizing="true" EnableHover="true">
+            <GridEvents TValue="Serie" RowSelected="SurSelection" RowDeselected="SurDeselection"
+                        OnRecordDoubleClick="SurDoubleClic" DataBound="SurDonneesLiees" />
+            <GridSelectionSettings Mode="Syncfusion.Blazor.Grids.SelectionMode.Row" Type="SelectionType.Single" />
+            <GridColumns>
+                @* L'identifiant, invisible : c'est par lui que la ligne choisie est
+                   retrouvée après un rechargement (voir SurDonneesLiees). *@
+                <GridColumn Field="@nameof(Serie.Id)" IsPrimaryKey="true" Visible="false" />
+                <GridColumn Field="@nameof(Serie.Nom)" HeaderText="Série" MinWidth="200" />
+                @* Les manquants EN DEUXIÈME position : c'est la seule colonne pour
+                   laquelle on ouvre cet écran. *@
+                <GridColumn Field="@nameof(Serie.ResumeManquants)" HeaderText="Tomes manquants" Width="240" />
+                <GridColumn Field="@nameof(Serie.Statut)" HeaderText="État" Width="120" />
+                <GridColumn Field="@nameof(Serie.NbPossedes)" HeaderText="Possédés" Width="100"
+                            TextAlign="TextAlign.Right" />
+                @* « Sur » : se lit dans le prolongement — 12 possédés, sur 24. *@
+                <GridColumn Field="@nameof(Serie.TomesAnnonces)" HeaderText="Sur" Width="80"
+                            TextAlign="TextAlign.Right" />
+                <GridColumn Field="@nameof(Serie.Terminee)" HeaderText="Terminée" Width="100"
+                            DisplayAsCheckBox="true" TextAlign="TextAlign.Center" HeaderTextAlign="TextAlign.Center" />
+                <GridColumn Field="@nameof(Serie.Note)" HeaderText="Note" Width="180" />
+            </GridColumns>
+        </SfGrid>
+    </div>
+
+    <div class="aide mt-2">@Vm.Resume</div>
+</MudPaper>
+
+@code {
+    private SfGrid<Serie>? _grille;
+
+    /// <summary>Copie de la liste pour la grille — même raison que la Bibliothèque.</summary>
+    private List<Serie>? _lignes;
+    private List<Serie> Lignes => _lignes ??= [.. Vm.Series];
+
+    protected override void OnInitialized()
+    {
+        Vm.Series.CollectionChanged += SurCollection;
+        base.OnInitialized();
+    }
+
+    protected override void Arrivee() => Vm.Charger();
+
+    // Contrairement à la Bibliothèque, la sélection n'est PAS vidée ici : le
+    // ViewModel la retrouve lui-même par son identifiant après le rechargement
+    // (SeriesViewModel.Charger), pour qu'on renseigne dix séries d'affilée sans
+    // repartir du haut de la liste.
+    private void SurCollection(object? sender, NotifyCollectionChangedEventArgs e) => _lignes = null;
+
+    /// <summary>
+    /// Une fois la grille remplie, on y remontre la ligne que le ViewModel a
+    /// retenue. La liaison SelectedItem du WPF le faisait seule ; ici, sans ce
+    /// geste, le bouton resterait actif sur une sélection invisible.
+    /// </summary>
+    private async Task SurDonneesLiees(object _)
+    {
+        if (_grille is null || Vm.Selection is not { } serie) return;
+
+        var index = await _grille.GetRowIndexByPrimaryKeyAsync(serie.Id);
+        if (index >= 0) await _grille.SelectRowAsync(index);
+    }
+
+    private void SurSelection(RowSelectEventArgs<Serie> e) => Vm.Selection = e.Data;
+
+    private void SurDeselection(RowDeselectEventArgs<Serie> e)
+    {
+        // Une désélection provoquée par le rechargement de la grille ne doit pas
+        // effacer ce que le ViewModel vient de retrouver.
+        if (e.IsInteracted) Vm.Selection = null;
+    }
+
+    /// <summary>Le double-clic fait exactement ce que fait le bouton : la commande.</summary>
+    private async Task SurDoubleClic(RecordDoubleClickEventArgs<Serie> e)
+    {
+        if (e.RowData is null) return;
+        Vm.Selection = e.RowData;
+        await Vm.ModifierCommand.ExecuteAsync(null);
+    }
+
+    public override void Dispose()
+    {
+        Vm.Series.CollectionChanged -= SurCollection;
+        base.Dispose();
+    }
+}

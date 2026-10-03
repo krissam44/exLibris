@@ -197,6 +197,22 @@ html, body {
     margin-top: 4px;
 }
 
+/* ---------- Formulaire de série ---------- */
+.formulaire-serie .etat-actuel {
+    background: var(--mud-palette-background);
+    border-radius: 4px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+}
+
+.formulaire-serie .bloc {
+    margin-bottom: 10px;
+}
+
+.formulaire-serie .retrait {
+    margin-left: 32px;
+}
+
 /* ---------- Cartes : l'équivalent du style « Carte » du WPF ---------- */
 .carte {
     padding: 16px;

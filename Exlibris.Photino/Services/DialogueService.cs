@@ -36,20 +36,18 @@ public sealed class DialogueService(IDialogService dialogues, PhotinoWindow fene
         // La correspondance ViewModel → vue Razor, pendant de VueDe() dans le
         // WPF. Un formulaire pas encore porté le DIT plutôt que d'ouvrir un
         // dialogue vide.
-        var vue = formulaire switch
+        // Un ViewModel absent de cette liste est une erreur de programmation,
+        // et elle se voit au premier essai — comme VueDe() côté WPF.
+        var (vue, largeur) = formulaire switch
         {
-            LivreFormulaireViewModel => typeof(Formulaires.LivreFormulaire),
-            _ => null,
+            // 820 px dans le WPF : Medium (960) au plus, le formulaire et sa
+            // couverture y tiennent sans défilement horizontal.
+            LivreFormulaireViewModel => (typeof(Formulaires.LivreFormulaire), MaxWidth.Medium),
+            // Trois champs sur 400 px dans le WPF.
+            SerieFormulaireViewModel => (typeof(Formulaires.SerieFormulaire), MaxWidth.Small),
+            _ => throw new ArgumentException(
+                $"Aucune vue Razor déclarée pour {formulaire.GetType().Name}.", nameof(formulaire)),
         };
-
-        if (vue is null)
-        {
-            await dialogues.ShowMessageBoxAsync(titre,
-                "Ce formulaire n'est pas encore porté dans la version Photino (étape 4). "
-                + "Il reste disponible dans la version WPF.",
-                yesText: "Fermer");
-            return false;
-        }
 
         var parametres = new DialogParameters<Dialogues.FormulaireDialogue>
         {
@@ -60,9 +58,7 @@ public sealed class DialogueService(IDialogService dialogues, PhotinoWindow fene
             { d => d.Formulaire, formulaire },
         };
 
-        // 820 px dans le WPF : Medium (960) au plus, le formulaire et sa
-        // couverture y tiennent sans défilement horizontal.
-        var dialogue = await dialogues.ShowAsync<Dialogues.FormulaireDialogue>(null, parametres, Options(MaxWidth.Medium));
+        var dialogue = await dialogues.ShowAsync<Dialogues.FormulaireDialogue>(null, parametres, Options(largeur));
         var resultat = await dialogue.Result;
         return resultat is { Canceled: false };
     }

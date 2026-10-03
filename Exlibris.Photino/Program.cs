@@ -74,6 +74,7 @@ internal static class Program
         services.AddScoped<Exlibris.Services.IDialogueService, Services.DialogueService>();
         services.AddScoped<AccueilViewModel>();
         services.AddScoped<BibliothequeViewModel>();
+        services.AddScoped<SeriesViewModel>();
 
         builder.RootComponents.Add<App>("app");
 
