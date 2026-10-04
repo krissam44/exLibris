@@ -22,8 +22,10 @@
     <SatelliteResourceLanguages>fr</SatelliteResourceLanguages>
     <ApplicationIcon>Assets\exlibris.ico</ApplicationIcon>
 
-    <!-- Même numéro que le projet WPF tant que les deux coexistent. -->
-    <Version>0.2.1</Version>
+    <!-- Numérotation PROPRE à la version Photino depuis le 04/10/2026 (0.2.1
+         était celui du WPF au moment du portage). L'installateur la lit dans
+         l'exécutable : c'est le seul endroit où l'incrémenter. -->
+    <Version>0.2.2</Version>
   </PropertyGroup>
 
   <ItemGroup>
