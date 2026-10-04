@@ -1,3 +1,94 @@
 @page "/inventaire"
+@inherits VueBase<InventaireViewModel>
+@using System.Collections.Specialized
 
-<AVenir Titre="Inventaire" Etape="5" />
+@* Deux étapes, deux cartes, dans l'ordre où on les fait — comme le WPF.
+   L'import est instantané ; la complétion dure plusieurs minutes. Les réunir
+   derrière un seul bouton ferait croire à un blocage au premier gros fichier. *@
+
+<div class="page-pleine page-inventaire">
+
+    @* ===== 1. Verser le fichier ===== *@
+    <MudPaper Elevation="1" Class="carte etape">
+        <div class="texte-etape">
+            <div class="titre-carte">1. Verser un inventaire</div>
+            <div class="aide">
+                Le fichier produit par le scanner : un ISBN et un rangement par ligne. Chaque ouvrage
+                entre avec son emplacement, mais sans titre — celui-ci viendra de l'étape 2. Un ISBN
+                déjà connu est ignoré : réimporter le même fichier ne duplique rien.
+            </div>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="Vm.EnCours"
+                   StartIcon="@Icons.Material.Filled.FileOpen"
+                   OnClick="() => Vm.ImporterCommand.ExecuteAsync(null)">
+            Choisir un fichier…
+        </MudButton>
+    </MudPaper>
+
+    @* ===== 2. Compléter ===== *@
+    <MudPaper Elevation="1" Class="carte etape">
+        <div class="texte-etape">
+            <div class="titre-carte">2. Compléter les fiches</div>
+            <div class="aide">
+                Titre, auteurs, éditeur, genre et couverture sont cherchés par ISBN. Comptez une
+                demi-seconde par ouvrage : les sources sont gratuites et publiques, les marteler ferait
+                bannir votre adresse. Vous pouvez arrêter et reprendre plus tard, rien n'est perdu.
+            </div>
+            <div class="legende mt-2">@Vm.Resume</div>
+        </div>
+        <div class="actions-etape">
+            @* « Arrêter » ne paraît que pendant le traitement : un bouton gris en
+               permanence apprend à ne plus le regarder. *@
+            @if (Vm.EnCours)
+            {
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Primary" />
+                <MudButton Variant="Variant.Filled" Color="Color.Error"
+                           OnClick="() => Vm.ArreterCommand.Execute(null)">
+                    Arrêter
+                </MudButton>
+            }
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="Vm.EnCours"
+                       StartIcon="@Icons.Material.Filled.TravelExplore"
+                       OnClick="() => Vm.CompleterCommand.ExecuteAsync(null)">
+                Compléter
+            </MudButton>
+        </div>
+    </MudPaper>
+
+    @* ===== Le journal =====
+       Le seul retour pendant plusieurs minutes : une ligne par ouvrage montre ce
+       qui se passe, et laisse repérer au passage un titre qui n'est visiblement
+       pas le bon. La dernière ligne est en haut (le ViewModel insère en tête). *@
+    <MudPaper Elevation="1" Class="carte journal">
+        <div class="titre-carte">Déroulement</div>
+        <div class="lignes-journal">
+            @foreach (var ligne in Vm.Journal)
+            {
+                <div>@ligne</div>
+            }
+        </div>
+    </MudPaper>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Le journal est une collection, pas une propriété : VueBase ne le voit
+        // pas changer. Ses lignes arrivent par Progress<T>, qui les repasse sur
+        // le contexte de l'interface (celui de Photino ici, comme celui de WPF
+        // là-bas) — d'où un simple redessin.
+        Vm.Journal.CollectionChanged += SurJournal;
+        base.OnInitialized();
+    }
+
+    protected override void Arrivee() => Vm.Charger();
+
+    private void SurJournal(object? sender, NotifyCollectionChangedEventArgs e) =>
+        _ = InvokeAsync(StateHasChanged);
+
+    public override void Dispose()
+    {
+        Vm.Journal.CollectionChanged -= SurJournal;
+        base.Dispose();
+    }
+}

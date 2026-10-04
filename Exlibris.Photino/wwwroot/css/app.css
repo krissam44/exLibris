@@ -197,6 +197,49 @@ html, body {
     margin-top: 4px;
 }
 
+/* ---------- Inventaire ----------
+   Deux cartes d'action à hauteur naturelle, le journal prend le reste et
+   défile à l'intérieur. */
+.page-inventaire {
+    gap: 12px;
+}
+
+.page-inventaire .etape {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.page-inventaire .texte-etape {
+    flex: 1;
+    max-width: 620px;
+}
+
+.page-inventaire .etape > .mud-button-root,
+.page-inventaire .actions-etape {
+    margin-left: auto;
+}
+
+.page-inventaire .actions-etape {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.page-inventaire .journal {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.page-inventaire .lignes-journal {
+    flex: 1;
+    overflow-y: auto;
+    font-size: 12.5px;
+    margin-top: 6px;
+}
+
 /* ---------- Formulaire de série ---------- */
 .formulaire-serie .etat-actuel {
     background: var(--mud-palette-background);

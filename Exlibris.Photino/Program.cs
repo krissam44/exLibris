@@ -75,6 +75,7 @@ internal static class Program
         services.AddScoped<AccueilViewModel>();
         services.AddScoped<BibliothequeViewModel>();
         services.AddScoped<SeriesViewModel>();
+        services.AddScoped<InventaireViewModel>();
 
         builder.RootComponents.Add<App>("app");
 
