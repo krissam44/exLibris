@@ -155,3 +155,54 @@ démarre avec la bannière d'évaluation de Syncfusion.
 | `installateur\Exlibris.iss` | le script Inno Setup |
 | `installateur\faire-icone.ps1` | régénère `Exlibris\Assets\exlibris.ico` depuis un PNG |
 | `lirevia-logo-front-bleu.png` | le visuel source de l'icône — **ne pas déplacer**, c'est le chemin par défaut du script |
+
+---
+
+## 6. La version Photino (Windows et Linux)
+
+Depuis le 04/10/2026, Ex-libris existe aussi en **Photino.Blazor**
+(`Exlibris.Photino`), qui tourne sous Windows **et** Linux. Elle s'installe
+**à côté** de la version WPF, avec son propre identifiant d'installation, et
+partage la même bibliothèque. La bascule viendra quand elle aura été validée
+à l'usage : ce jour-là, reprendre l'`AppId` du WPF dans
+`installateur\ExlibrisPhotino.iss` pour que l'installation le remplace.
+
+```powershell
+cd "D:\WorkPlace\Projet Exlibris"
+powershell -ExecutionPolicy Bypass -File .\publier-photino.ps1
+```
+
+| | Objet | Poids (04/10/2026) |
+|---|---|---|
+| Publication Windows | `publish\photino\win-x64\` (dossier) | 114 Mo |
+| Installateur Windows | `installateur\Installer-Exlibris-Photino-*.exe` | 33 Mo |
+| Publication Linux | `publish\photino\Exlibris-linux-x64.tar.gz` | 43 Mo |
+
+**Différences avec le WPF :**
+
+- **Un dossier, pas un fichier unique** : Photino lit `wwwroot` (pages,
+  styles, scripts) sur le disque. En fichier unique, la fenêtre resterait
+  blanche.
+- **Les thèmes Syncfusion sont élagués** à la publication (cible
+  `ElaguerThemesSyncfusion` du projet) : un seul est chargé, `bootstrap5.css`,
+  sur plus de 200 Mo livrés par le paquet.
+- **Windows** demande le runtime WebView2, présent d'office sous Windows 11.
+
+**Linux** — prérequis : glibc 2.38 ou plus (Ubuntu 24.04+, Debian 13+,
+Zorin OS 18+), et les paquets `libwebkit2gtk-4.1-0` et `libnotify4`.
+Sur le poste, extraire l'archive dans un dossier, puis :
+
+```bash
+bash installer.sh
+```
+
+Pas besoin de `chmod` : la copie depuis Windows perd le droit d'exécution, et
+le script le rétablit. L'application va dans `~/.local/opt/exlibris`, le
+lanceur dans le menu ; la **bibliothèque** reste dans `~/.local/share/Exlibris`
+(à sauvegarder : `exlibris.db` **et** `couvertures/`), que ni la réinstallation
+ni `desinstaller.sh` ne touchent. Une réinstallation conserve le
+`appsettings.Local.json` du poste. Ne jamais lancer en root.
+
+Note : sous Linux, WebKit range aussi ses propres fichiers (`storage`,
+`mediakeys`, `hsts-storage.sqlite`) dans `~/.local/share/Exlibris` ; ils ne
+font pas partie de la bibliothèque.

@@ -5,6 +5,13 @@
        et Exlibris.Shared, donc la même base et les mêmes règles. -->
 
   <PropertyGroup>
+    <!-- Thème Syncfusion réellement chargé par wwwroot/index.html. Les autres
+         sont écartés de la publication par la cible ElaguerThemesSyncfusion,
+         plus bas. À changer AUX DEUX endroits si l'on adopte un autre thème. -->
+    <ThemeSyncfusion>bootstrap5.css</ThemeSyncfusion>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <!-- WinExe évite la console sous Windows ; ignoré sous Linux. -->
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
@@ -40,9 +47,10 @@
   </ItemGroup>
 
   <!-- ViewModels du projet WPF repris TELS QUELS, par lien : une seule source
-       pour la logique d'écran tant que les deux interfaces coexistent. Seuls
-       ceux qui ne dépendent d'aucun type WPF peuvent être liés ; la liste
-       s'allonge à chaque étape du portage. -->
+       pour la logique d'écran tant que les deux interfaces coexistent. Ils
+       n'ont plus aucune dépendance WPF depuis le passage des dialogues en
+       asynchrone. Seuls MainViewModel et Rubrique restent au WPF : la coquille
+       Photino (MainLayout) navigue par adresses, elle n'en a pas l'usage. -->
   <ItemGroup>
     <Compile Include="..\Exlibris\ViewModels\AccueilViewModel.cs" Link="ViewModels\AccueilViewModel.cs" />
     <Compile Include="..\Exlibris\ViewModels\BibliothequeViewModel.cs" Link="ViewModels\BibliothequeViewModel.cs" />
@@ -70,5 +78,40 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+
+  <!-- Installation Linux : lanceur .desktop et scripts, déposés à la RACINE de
+       la publication et seulement pour une cible linux-*. L'icône du lanceur
+       est Assets/exlibris-256.png, déjà publiée pour la fenêtre. -->
+  <ItemGroup Condition="$(RuntimeIdentifier.StartsWith('linux'))">
+    <None Include="linux\*" Link="%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- ===================================================================
+       Élagage des thèmes Syncfusion à la publication
+       ===================================================================
+       Repris de Lirevia via le POC Photino. Syncfusion.Blazor.Themes livre
+       des dizaines de thèmes (plus de 200 Mo) pour un seul chargé.
+
+       Ne s'exécute QUE sur `dotnet publish` : en développement, tous les
+       thèmes restent disponibles pour en essayer un autre.
+
+       Différence avec Lirevia : on ne garde PAS les variantes .br/.gz. Elles
+       servent à la négociation de contenu de Kestrel ; Photino lit wwwroot sur
+       le disque et ne sert jamais que le fichier brut.
+       =================================================================== -->
+  <Target Name="ElaguerThemesSyncfusion" AfterTargets="Publish">
+    <PropertyGroup>
+      <DossierThemes>$(PublishDir)wwwroot/_content/Syncfusion.Blazor.Themes/</DossierThemes>
+    </PropertyGroup>
+    <ItemGroup>
+      <ThemesPublies    Include="$(DossierThemes)**/*.*" />
+      <ThemesAGarder    Include="$(DossierThemes)$(ThemeSyncfusion)" />
+      <ThemesASupprimer Include="@(ThemesPublies)" Exclude="@(ThemesAGarder)" />
+    </ItemGroup>
+    <Delete Files="@(ThemesASupprimer)" />
+    <RemoveDir Directories="$(DossierThemes)customized" ContinueOnError="true" />
+    <Message Importance="high"
+             Text="Thèmes Syncfusion : @(ThemesASupprimer->Count()) fichiers écartés, @(ThemesAGarder->Count()) conservé ($(ThemeSyncfusion))." />
+  </Target>
 
 </Project>

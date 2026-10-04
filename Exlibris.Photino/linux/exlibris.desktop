@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Ex-libris
+GenericName=Bibliothèque personnelle
+Comment=Catalogue de vos livres et bandes dessinées
+# @DOSSIER@ est remplacé par installer.sh : un lanceur .desktop exige des
+# chemins absolus, il ne connaît ni ~ ni $HOME.
+Exec="@DOSSIER@/Exlibris"
+Path=@DOSSIER@
+Icon=exlibris
+Terminal=false
+Categories=Office;
+Keywords=livres;bibliothèque;BD;ISBN;
+StartupNotify=true
