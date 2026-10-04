@@ -122,9 +122,13 @@ html, body {
 }
 
 /* ---------- Formulaire d'ouvrage ---------- */
+/* Colonne de la couverture : 160 px (132 dans le WPF). À 132, « Choisir une
+   image… » passait sur deux lignes avec la police de la WebView — demande de
+   l'utilisateur du 04/10/2026. La vignette garde les proportions du WPF. */
 .formulaire-livre {
+    --largeur-couverture: 160px;
     display: grid;
-    grid-template-columns: 1fr 132px;
+    grid-template-columns: 1fr var(--largeur-couverture);
     gap: 16px;
 }
 
@@ -173,8 +177,9 @@ html, body {
    selon le format de l'image ; « contain » garde les proportions de l'album
    à l'italienne comme du poche. */
 .formulaire-livre .vignette {
-    width: 132px;
-    height: 200px;
+    width: var(--largeur-couverture);
+    /* Le rapport 132 × 200 du WPF, celui d'un album ou d'un poche. */
+    aspect-ratio: 132 / 200;
     padding: 0;
     border: 1px solid var(--mud-palette-lines-default);
     border-radius: 3px;
@@ -184,6 +189,11 @@ html, body {
     justify-content: center;
     cursor: pointer;
     overflow: hidden;
+}
+
+/* Le libellé du bouton sur UNE ligne, quelle que soit la police du système. */
+.formulaire-livre .colonne-couverture .mud-button-root {
+    white-space: nowrap;
 }
 
 .formulaire-livre .vignette img {
