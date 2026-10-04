@@ -1,5 +1,6 @@
 using Exlibris.Services;
 using Exlibris.ViewModels;
+using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using Photino.NET;
 
@@ -65,8 +66,17 @@ public sealed class DialogueService(IDialogService dialogues, PhotinoWindow fene
 
     public async Task<bool> ConfirmerAsync(string titre, string question, string libelleValider = "Confirmer")
     {
+        // Les retours à la ligne de la question sont CONSERVÉS : la confirmation
+        // de fusion nomme le survivant, puis la liste des absorbés, puis la
+        // conséquence — trois paragraphes, comme dans le WPF. En texte brut, le
+        // HTML les fondait en un seul bloc où l'on ne voyait plus qui survit.
+        // Le texte est encodé AVANT d'y insérer les <br> : un libellé contenant
+        // un chevron reste un libellé.
+        var corps = new MarkupString(
+            System.Net.WebUtility.HtmlEncode(question).Replace("\n", "<br />"));
+
         var reponse = await dialogues.ShowMessageBoxAsync(
-            titre, question, yesText: libelleValider, cancelText: "Annuler",
+            titre, corps, yesText: libelleValider, cancelText: "Annuler",
             options: Options(MaxWidth.Small));
 
         // null = fermé par Échap ou par la croix : c'est un refus, comme dans le WPF.

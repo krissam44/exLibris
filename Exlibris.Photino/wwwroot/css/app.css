@@ -240,6 +240,32 @@ html, body {
     margin-top: 6px;
 }
 
+/* ---------- Paramètres ---------- */
+.page-parametres {
+    gap: 12px;
+}
+
+.page-parametres .retrait-case {
+    margin-left: 32px;
+    max-width: 620px;
+}
+
+.page-parametres .texte-borne {
+    max-width: 620px;
+}
+
+.page-parametres .doublons {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.page-parametres .doublons .zone-grille {
+    flex: 1;
+    min-height: 0;
+}
+
 /* ---------- Formulaire de série ---------- */
 .formulaire-serie .etat-actuel {
     background: var(--mud-palette-background);

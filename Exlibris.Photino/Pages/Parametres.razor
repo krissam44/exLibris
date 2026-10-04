@@ -1,3 +1,117 @@
 @page "/parametres"
+@inherits VueBase<ParametresViewModel>
+@using System.Collections.Specialized
+@using Exlibris.Shared.Modeles
+@using Syncfusion.Blazor.Grids
 
-<AVenir Titre="Paramètres" Etape="6" />
+<div class="page-pleine page-parametres">
+
+    @* ================= Réglages ================= *@
+    <MudPaper Elevation="1" Class="carte">
+        <div class="titre-carte">Réglages</div>
+        @* Écrit dès que la case change, sans bouton « Enregistrer » : la case
+           cochée EST la décision (voir ParametresViewModel). *@
+        <MudCheckBox T="bool" Value="Vm.ProprietairesActifs" ValueChanged="v => Vm.ProprietairesActifs = v"
+                     Label="Distinguer le propriétaire de chaque ouvrage" Dense="true" Class="mt-1" />
+        <div class="aide retrait-case">
+            Ajoute un champ « Propriétaire » à la fiche et une colonne à la liste, pour séparer vos
+            ouvrages de ceux de votre conjoint ou de vos enfants. Laissez décoché si la bibliothèque
+            n'a qu'un propriétaire : une case dont la réponse est toujours la même n'apprend rien.
+        </div>
+    </MudPaper>
+
+    @* ================= Référentiels =================
+       La grille occupe la place restante : c'est elle qu'on parcourt. *@
+    <MudPaper Elevation="1" Class="carte doublons">
+        <div class="titre-carte">Réunir les doublons</div>
+        <div class="aide texte-borne">
+            Le même éditeur arrive sous plusieurs noms selon la source. Cochez les libellés à réunir :
+            celui qui porte le plus d'ouvrages est conservé, et les autres ne reviendront plus — une
+            notice qui les emploierait retombera sur lui.
+        </div>
+
+        <div class="barre-filtres mt-2">
+            @* Liste FERMÉE : on choisit un référentiel, on n'en invente pas. *@
+            <MudSelect T="Referentiel" Value="Vm.ReferentielChoisi" ValueChanged="v => Vm.ReferentielChoisi = v"
+                       ToStringFunc="r => r?.Libelle ?? string.Empty"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Style="width: 220px">
+                @foreach (var referentiel in Vm.Referentiels)
+                {
+                    <MudSelectItem T="Referentiel" Value="referentiel">@referentiel.Libelle</MudSelectItem>
+                }
+            </MudSelect>
+            @* Le message suit les cases EN DIRECT : on sait ce que l'application
+               a compris de nos clics avant d'appuyer sur « Réunir ». *@
+            <span class="aide">@Vm.MessageFusion</span>
+            <MudSpacer />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       OnClick="() => Vm.FusionnerCommand.ExecuteAsync(null)">
+                Réunir la sélection
+            </MudButton>
+        </div>
+
+        <div class="zone-grille">
+            @* ⚠️ DES CASES À COCHER, et non la sélection de la grille — même
+               raison que dans le WPF (EntreeReferentiel.Choisi) : la case coche
+               une propriété de la DONNÉE, elle se voit avant une opération sans
+               retour, et elle survit au tri comme au filtre. *@
+            <SfGrid @ref="_grille" TValue="EntreeReferentiel" DataSource="Lignes" Height="100%" Width="100%"
+                    AllowSorting="true" AllowFiltering="true" EnableHover="true">
+                <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Excel" />
+                <GridColumns>
+                    @* La SEULE colonne modifiable : rien d'autre ici ne se corrige
+                       à la main. *@
+                    <GridColumn HeaderText="Réunir" Width="90" TextAlign="TextAlign.Center"
+                                HeaderTextAlign="TextAlign.Center" AllowFiltering="false" AllowSorting="false">
+                        <Template>
+                            @{ var entree = (EntreeReferentiel)context; }
+                            <MudCheckBox T="bool" Value="entree.Choisi" ValueChanged="v => entree.Choisi = v"
+                                         Dense="true" Size="Size.Small" />
+                        </Template>
+                    </GridColumn>
+                    <GridColumn Field="@nameof(EntreeReferentiel.Nom)" HeaderText="Libellé" />
+                    @* Le décompte sert la décision : devant quatre « Livre de
+                       poche », on garde celui qui en porte deux cents. *@
+                    <GridColumn Field="@nameof(EntreeReferentiel.NbOuvrages)" HeaderText="Ouvrages" Width="120"
+                                TextAlign="TextAlign.Center" HeaderTextAlign="TextAlign.Center" />
+                </GridColumns>
+            </SfGrid>
+        </div>
+    </MudPaper>
+</div>
+
+@code {
+    private SfGrid<EntreeReferentiel>? _grille;
+
+    /// <summary>Copie de la liste pour la grille — même raison que la Bibliothèque.</summary>
+    private List<EntreeReferentiel>? _lignes;
+    private List<EntreeReferentiel> Lignes => _lignes ??= [.. Vm.Entrees];
+
+    protected override void OnInitialized()
+    {
+        Vm.Entrees.CollectionChanged += SurCollection;
+        base.OnInitialized();
+    }
+
+    protected override void Arrivee() => Vm.Charger();
+
+    private void SurCollection(object? sender, NotifyCollectionChangedEventArgs e) => _lignes = null;
+
+    /// <summary>
+    /// Changer de référentiel vide les filtres de colonne. Sans cela, un filtre
+    /// posé sur les éditeurs (« gal ») restait appliqué aux genres : la grille
+    /// disait « Aucun enregistrement » pendant que le message annonçait
+    /// 31 entrées — de quoi croire la liste perdue.
+    /// </summary>
+    protected override void ProprieteChangee(string? nom)
+    {
+        if (nom == nameof(ParametresViewModel.ReferentielChoisi) && _grille is not null)
+            _ = _grille.ClearFilteringAsync();
+    }
+
+    public override void Dispose()
+    {
+        Vm.Entrees.CollectionChanged -= SurCollection;
+        base.Dispose();
+    }
+}

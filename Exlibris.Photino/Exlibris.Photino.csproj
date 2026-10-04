@@ -51,6 +51,7 @@
     <Compile Include="..\Exlibris\ViewModels\LivreFormulaireViewModel.cs" Link="ViewModels\LivreFormulaireViewModel.cs" />
     <Compile Include="..\Exlibris\ViewModels\SeriesViewModel.cs" Link="ViewModels\SeriesViewModel.cs" />
     <Compile Include="..\Exlibris\ViewModels\InventaireViewModel.cs" Link="ViewModels\InventaireViewModel.cs" />
+    <Compile Include="..\Exlibris\ViewModels\ParametresViewModel.cs" Link="ViewModels\ParametresViewModel.cs" />
     <Compile Include="..\Exlibris\Services\IDialogueService.cs" Link="Services\IDialogueService.cs" />
   </ItemGroup>
 
