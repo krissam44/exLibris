@@ -1,0 +1,79 @@
+@inherits FormulaireBase<LivreFormulaireViewModel>
+@inject Services.Couvertures Couvertures
+
+@* La fiche d'un ouvrage en CONSULTATION (double-clic dans la bibliothèque) :
+   la même disposition que la saisie (LivreFormulaire), mais chaque valeur
+   dans un champ texte en lecture seule — une liste déroulante sans rien à
+   choisir n'aurait plus de sens. Ni « Rechercher », ni « Choisir une
+   image » : on regarde, on ne modifie pas. Le bouton « Modifier » de la
+   bibliothèque reste le chemin de la saisie. *@
+
+<div class="formulaire-livre">
+
+    <div class="saisie">
+
+        <div class="ligne-isbn">
+            @Champ("ISBN", Vm.Isbn, "champ-isbn")
+            @Champ("Année", Vm.Annee?.ToString(), "champ-annee")
+        </div>
+
+        <div class="bloc">@Champ("Titre", Vm.Titre)</div>
+        <div class="bloc">@Champ("Auteurs", Vm.Auteurs)</div>
+
+        <div class="deux-colonnes">
+            @Champ("Éditeur", Vm.Editeur)
+            @Champ("Genre", Vm.Genre)
+        </div>
+        <div class="deux-colonnes bloc">
+            @Champ("Ma catégorie", Vm.Classement)
+            @Champ("Rangement", Vm.Rangement)
+        </div>
+
+        @if (Vm.ProprietairesActifs)
+        {
+            <div class="bloc" style="width: 300px">@Champ("Propriétaire", Vm.Proprietaire)</div>
+        }
+
+        <div class="serie-tome">
+            @Champ("Série", Vm.Serie)
+            @Champ("Tome", Vm.NumeroTome?.ToString())
+        </div>
+
+        <div class="ligne-lecture">
+            <div style="width: 120px">@Champ("Lu", Vm.Lu ? "Oui" : "Non")</div>
+            <div style="width: 160px">@Champ("Appréciation", Vm.Appreciation is { } n ? new string('★', n) + new string('☆', 5 - n) : "—")</div>
+        </div>
+
+        <MudTextField T="string" Label="Commentaire" Value="@Vm.Commentaire" ReadOnly="true" Lines="3"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+    </div>
+
+    <div class="colonne-couverture">
+        <button type="button" class="vignette" title="Cliquer pour agrandir"
+                @onclick="() => Vm.AgrandirCouvertureCommand.ExecuteAsync(null)">
+            @if (UrlCouverture is { } url)
+            {
+                <img src="@url" alt="Couverture" />
+            }
+            else
+            {
+                <span class="aide">Pas de couverture</span>
+            }
+        </button>
+        @if (UrlCouverture is not null)
+        {
+            <div class="aide centre">Cliquer pour agrandir</div>
+        }
+    </div>
+</div>
+
+@code {
+    private string? UrlCouverture => Couvertures.Url(Vm.CheminCouverture);
+
+    /// <summary>Un champ en lecture seule, de même allure que ceux de la saisie ; « — » quand il est vide.</summary>
+    private RenderFragment Champ(string libelle, string? valeur, string? classe = null) => __builder =>
+    {
+        <MudTextField T="string" Label="@libelle" Value="@(string.IsNullOrWhiteSpace(valeur) ? "—" : valeur)" ReadOnly="true"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" Class="@classe" />
+    };
+}

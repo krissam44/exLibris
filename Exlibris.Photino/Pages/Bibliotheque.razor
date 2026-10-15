@@ -134,7 +134,7 @@
     /// <summary>
     /// La mosaïque, comme la borne de Lirevia : une barre de lettres, puis les
     /// couvertures. Un clic choisit l'ouvrage (pour Modifier, Supprimer), un
-    /// double-clic ouvre sa fiche — les mêmes gestes que dans la liste.
+    /// double-clic montre sa fiche en consultation — les mêmes gestes que dans la liste.
     /// </summary>
     private RenderFragment Mosaique => __builder =>
     {
@@ -156,7 +156,7 @@
             <div class="mosaique">
                 @foreach (var livre in visibles.Take(_affichees))
                 {
-                    <div class="vignette @(ReferenceEquals(livre, Vm.Selection) ? "choisie" : "")" @key="livre.Id"
+                    <div class="carte-vignette @(ReferenceEquals(livre, Vm.Selection) ? "choisie" : "")" @key="livre.Id"
                          title="@livre.TitreComplet" @onclick="() => Vm.Selection = livre" @ondblclick="() => Ouvrir(livre)">
                         @Couverture(livre, "couverture-vignette")
                         <div class="texte-vignette">
@@ -199,6 +199,9 @@
     };
 
     [Inject] private ParametreDepot Parametres { get; set; } = default!;
+    [Inject] private ReferentielDepot Referentiels { get; set; } = default!;
+    [Inject] private NoticeEnLigneService Notices { get; set; } = default!;
+    [Inject] private Exlibris.Services.IDialogueService Dialogues { get; set; } = default!;
     [Inject] private CouvertureDepot DepotCouvertures { get; set; } = default!;
     [Inject] private Services.Couvertures Couvertures { get; set; } = default!;
 
@@ -233,10 +236,16 @@
         _affichees = PasAffichage;
     }
 
+    /// <summary>
+    /// Le double-clic, dans la liste comme dans les vignettes : la fiche en
+    /// CONSULTATION, sans rien à enregistrer (demande du 16/10/2026). Le
+    /// bouton « Modifier » reste le chemin de la saisie.
+    /// </summary>
     private async Task Ouvrir(Livre livre)
     {
         Vm.Selection = livre;
-        await Vm.ModifierCommand.ExecuteAsync(null);
+        var formulaire = new LivreFormulaireViewModel(Referentiels, Notices, DepotCouvertures, Dialogues, Vm.ProprietairesActifs, livre);
+        await ((Services.DialogueService)Dialogues).ConsulterAsync(livre.TitreComplet, formulaire);
     }
 
     private SfGrid<Livre>? _grille;
@@ -309,16 +318,10 @@
     private void SurSelection(RowSelectEventArgs<Livre> e) => Vm.Selection = e.Data;
     private void SurDeselection(RowDeselectEventArgs<Livre> e) => Vm.Selection = null;
 
-    /// <summary>
-    /// Le double-clic ouvre la fiche — même geste que dans le WPF. C'est la
-    /// COMMANDE qui est appelée : le bouton et le double-clic doivent faire
-    /// exactement la même chose.
-    /// </summary>
+    /// <summary>Le double-clic montre la fiche en consultation (voir <see cref="Ouvrir"/>).</summary>
     private async Task SurDoubleClic(RecordDoubleClickEventArgs<Livre> e)
     {
-        if (e.RowData is null) return;
-        Vm.Selection = e.RowData;
-        await Vm.ModifierCommand.ExecuteAsync(null);
+        if (e.RowData is not null) await Ouvrir(e.RowData);
     }
 
     public override void Dispose()

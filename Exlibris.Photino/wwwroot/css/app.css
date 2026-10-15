@@ -357,7 +357,7 @@ html, body {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 14px;
 }
-.vignette {
+.carte-vignette {
     position: relative;
     display: flex;
     flex-direction: column;
@@ -369,8 +369,8 @@ html, body {
     user-select: none;
     transition: box-shadow .15s, border-color .15s;
 }
-.vignette:hover { box-shadow: 0 2px 8px rgba(0, 0, 0, .15); }
-.vignette.choisie { border-color: var(--mud-palette-primary); box-shadow: 0 0 0 2px var(--mud-palette-primary); }
+.carte-vignette:hover { box-shadow: 0 2px 8px rgba(0, 0, 0, .15); }
+.carte-vignette.choisie { border-color: var(--mud-palette-primary); box-shadow: 0 0 0 2px var(--mud-palette-primary); }
 .couverture-vignette {
     width: 100%;
     aspect-ratio: 2 / 3;
