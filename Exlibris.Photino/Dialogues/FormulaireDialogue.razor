@@ -27,10 +27,13 @@
     <DialogActions>
         @* « bouton-annuler » : c'est lui que clique Échap (wwwroot/js/exlibris.js). *@
         <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="Annuler" Class="bouton-annuler">@LibelleAnnuler</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit"
-                   form="@_idFormulaire" Class="mr-2">
-            @LibelleValider
-        </MudButton>
+        @if (!LectureSeule)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit"
+                       form="@_idFormulaire" Class="mr-2">
+                @LibelleValider
+            </MudButton>
+        }
     </DialogActions>
 </MudDialog>
 
@@ -41,6 +44,9 @@
     [Parameter] public string Aide { get; set; } = "";
     [Parameter] public string LibelleValider { get; set; } = "Enregistrer";
     [Parameter] public string LibelleAnnuler { get; set; } = "Fermer";
+
+    /// <summary>Une consultation : pas de bouton d'enregistrement, seulement « Fermer ».</summary>
+    [Parameter] public bool LectureSeule { get; set; }
 
     /// <summary>Le composant Razor du formulaire (LivreFormulaire, …).</summary>
     [Parameter, EditorRequired] public Type TypeVue { get; set; } = default!;
@@ -53,7 +59,8 @@
     // Le contrôle de la saisie n'est PAS fait ici, comme dans le WPF : le
     // gabarit ne connaît pas les règles du formulaire. C'est l'appelant qui
     // rouvre le dialogue tant que le titre manque (BibliothequeViewModel).
-    private void Valider() => Dialogue.Close(DialogResult.Ok(true));
+    // En consultation, Entrée ferme simplement : il n'y a rien à enregistrer.
+    private void Valider() => Dialogue.Close(DialogResult.Ok(!LectureSeule));
 
     private void Annuler() => Dialogue.Cancel();
 }

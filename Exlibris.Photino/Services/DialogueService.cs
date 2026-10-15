@@ -63,6 +63,23 @@ public sealed class DialogueService(IDialogService dialogues, Fenetre fenetres, 
         return resultat is { Canceled: false };
     }
 
+    /// <summary>
+    /// La fiche d'un ouvrage en consultation (double-clic dans la
+    /// bibliothèque) : la vue LivreConsultation, sans bouton d'enregistrement.
+    /// Propre à la version Photino, d'où son absence de IDialogueService.
+    /// </summary>
+    public async Task ConsulterAsync(string titre, LivreFormulaireViewModel formulaire)
+    {
+        var parametres = new DialogParameters<Dialogues.FormulaireDialogue>
+        {
+            { d => d.Titre, titre },
+            { d => d.LectureSeule, true },
+            { d => d.TypeVue, typeof(Formulaires.LivreConsultation) },
+            { d => d.Formulaire, formulaire },
+        };
+        await (await dialogues.ShowAsync<Dialogues.FormulaireDialogue>(null, parametres, Options(MaxWidth.Medium))).Result;
+    }
+
     public async Task<bool> ConfirmerAsync(string titre, string question, string libelleValider = "Confirmer")
     {
         // Les retours à la ligne de la question sont CONSERVÉS : la confirmation
