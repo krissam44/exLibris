@@ -70,8 +70,10 @@
        valeurs vides) et appsettings.Local.json (la vraie clé, non versionné). -->
   <ItemGroup>
     <None Include="..\Exlibris\appsettings.json" Link="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- SansReglagesLocaux=true (publier-photino.ps1 -Release) : une publication
+         destinée au public n'emporte JAMAIS la clé Syncfusion ni l'adresse Lirevia. -->
     <None Include="..\Exlibris\appsettings.Local.json" Link="appsettings.Local.json" CopyToOutputDirectory="PreserveNewest"
-          Condition="Exists('..\Exlibris\appsettings.Local.json')" />
+          Condition="Exists('..\Exlibris\appsettings.Local.json') And '$(SansReglagesLocaux)' != 'true'" />
     <None Update="Assets\exlibris-256.png" CopyToOutputDirectory="PreserveNewest" />
     <None Update="Assets\exlibris.ico" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
