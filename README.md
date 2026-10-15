@@ -156,4 +156,11 @@ Dapper · xUnit (tests sur une vraie base SQLite jetable, sans simulacre).
 
 ## Licence
 
-À préciser.
+Ex-libris est distribué sous [licence MIT](LICENSE) : libre à chacun de
+l'utiliser, le modifier et le redistribuer, en conservant la mention de
+copyright.
+
+Les composants tiers gardent leur propre licence. Syncfusion Blazor, en
+particulier, n'est pas libre : son usage gratuit relève de la
+[Community License](https://www.syncfusion.com/products/communitylicense),
+et chacun doit obtenir sa propre clé.
