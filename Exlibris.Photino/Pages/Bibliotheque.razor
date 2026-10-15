@@ -1,6 +1,7 @@
 @page "/bibliotheque"
 @inherits VueBase<BibliothequeViewModel>
 @using System.Collections.Specialized
+@using Exlibris.Data
 @using Exlibris.Shared.Modeles
 @using Syncfusion.Blazor.Grids
 
@@ -18,13 +19,26 @@
 
         <MudSpacer />
 
+        @* Liste ou vignettes : le choix est mémorisé (paramètres de la base). *@
+        <div class="bascule-affichage">
+            <MudIconButton Icon="@Icons.Material.Filled.ViewList" title="Liste"
+                           Color="@(_vignettes ? Color.Default : Color.Primary)" Variant="@(_vignettes ? Variant.Text : Variant.Filled)"
+                           OnClick="() => ChoisirAffichage(false)" />
+            <MudIconButton Icon="@Icons.Material.Filled.ViewModule" title="Vignettes"
+                           Color="@(_vignettes ? Color.Primary : Color.Default)" Variant="@(_vignettes ? Variant.Filled : Variant.Text)"
+                           OnClick="() => ChoisirAffichage(true)" />
+        </div>
+
         @* Une liste à cocher, comme dans le WPF : on vient y cocher deux cases et
            retourner à la liste — rien à valider. *@
-        <MudMenu Label="Colonnes" Variant="Variant.Filled" Color="Color.Default"
+        <MudMenu Label="Colonnes" Variant="Variant.Filled" Color="Color.Default" Disabled="_vignettes"
                  StartIcon="@Icons.Material.Filled.ViewColumn" title="Choisir les colonnes affichées"
                  AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft">
             <div class="liste-colonnes" @onclick:stopPropagation="true">
                 <div class="legende mb-1">Colonnes affichées</div>
+                @* Hors du sélecteur partagé avec le WPF : une image dans la ligne n'existe qu'ici. *@
+                <MudCheckBox T="bool" Value="_vignetteListe" Dense="true" Size="Size.Small"
+                             ValueChanged="ChoisirVignetteListe" Label="Vignette de couverture" />
                 @foreach (var colonne in _colonnes.Proposees)
                 {
                     <div @key="colonne.Cle">
@@ -53,6 +67,12 @@
         </MudButton>
     </div>
 
+    @if (_vignettes)
+    {
+        @Mosaique
+    }
+    else
+    {
     <div class="zone-grille">
         @* La pagination porte sur la collection ENTIÈRE, tri et filtres
            compris — c'est le comportement par défaut de SfGrid, que le WPF
@@ -66,6 +86,16 @@
             <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Excel" />
             <GridSelectionSettings Mode="Syncfusion.Blazor.Grids.SelectionMode.Row" Type="SelectionType.Single" />
             <GridColumns>
+                @* La petite couverture en tête de ligne, si elle est demandée (menu Colonnes). *@
+                <GridColumn HeaderText="" Width="62" AllowFiltering="false" AllowSorting="false" AllowResizing="false"
+                            Visible="_vignetteListe">
+                    <Template>
+                        @if (context is Livre l)
+                        {
+                            @Couverture(l, "vignette-ligne")
+                        }
+                    </Template>
+                </GridColumn>
                 @* TitreComplet, et non Titre : « La magicienne trahie » seul ne dit
                    ni la série ni le rang. *@
                 <GridColumn Field="@nameof(Livre.TitreComplet)" HeaderText="Titre" MinWidth="200"
@@ -93,11 +123,122 @@
             </GridColumns>
         </SfGrid>
     </div>
+    }
 
     <div class="aide mt-2">@Vm.Resume</div>
 </MudPaper>
 
 @code {
+    // ----- Gabarits de rendu : c'est du balisage, ils restent dans le .razor.
+
+    /// <summary>
+    /// La mosaïque, comme la borne de Lirevia : une barre de lettres, puis les
+    /// couvertures. Un clic choisit l'ouvrage (pour Modifier, Supprimer), un
+    /// double-clic ouvre sa fiche — les mêmes gestes que dans la liste.
+    /// </summary>
+    private RenderFragment Mosaique => __builder =>
+    {
+        var presentes = Lignes.Select(Vignettes.Initiale).ToHashSet();
+        var visibles = Vignettes.Filtrer(Lignes, _lettre);
+        <div class="barre-lettres">
+            <button class="lettre @(_lettre is null ? "active" : "")" @onclick="() => ChoisirLettre(null)">Tout</button>
+            @foreach (var l in Vignettes.Lettres)
+            {
+                <button class="lettre @(_lettre == l ? "active" : "")" disabled="@(!presentes.Contains(l))"
+                        @onclick="() => ChoisirLettre(l)">@(l == Vignettes.Chiffres ? "0-9" : l.ToString())</button>
+            }
+        </div>
+        <div class="zone-vignettes">
+            @if (visibles.Count == 0)
+            {
+                <div class="aide pa-4">Aucun ouvrage sous cette lettre.</div>
+            }
+            <div class="mosaique">
+                @foreach (var livre in visibles.Take(_affichees))
+                {
+                    <div class="vignette @(ReferenceEquals(livre, Vm.Selection) ? "choisie" : "")" @key="livre.Id"
+                         title="@livre.TitreComplet" @onclick="() => Vm.Selection = livre" @ondblclick="() => Ouvrir(livre)">
+                        @Couverture(livre, "couverture-vignette")
+                        <div class="texte-vignette">
+                            <div class="titre-vignette">@livre.TitreComplet</div>
+                            <div class="auteur-vignette">@livre.Auteurs</div>
+                        </div>
+                        @if (livre.Lu)
+                        {
+                            <span class="pastille-lu" title="Lu">Lu</span>
+                        }
+                    </div>
+                }
+            </div>
+            @if (visibles.Count > _affichees)
+            {
+                <div class="d-flex justify-center my-3">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="() => _affichees += PasAffichage">
+                        Afficher @Math.Min(PasAffichage, visibles.Count - _affichees) de plus (@(visibles.Count - _affichees) restants)
+                    </MudButton>
+                </div>
+            }
+        </div>
+    };
+
+    /// <summary>
+    /// La couverture, ou à défaut une carte qui porte l'initiale du titre :
+    /// 30 % des BD n'ont pas de couverture en ligne, la mosaïque ne doit pas
+    /// devenir une suite de trous.
+    /// </summary>
+    private RenderFragment Couverture(Livre livre, string classe) => __builder =>
+    {
+        if (Url(livre) is { } url)
+        {
+            <img src="@url" alt="" loading="lazy" class="@classe" />
+        }
+        else
+        {
+            <div class="@classe sans-couverture"><span>@(Vignettes.Initiale(livre) is { } i && i != Vignettes.Chiffres ? i.ToString() : "?")</span></div>
+        }
+    };
+
+    [Inject] private ParametreDepot Parametres { get; set; } = default!;
+    [Inject] private CouvertureDepot DepotCouvertures { get; set; } = default!;
+    [Inject] private Services.Couvertures Couvertures { get; set; } = default!;
+
+    // Réglages propres à la version Photino : le WPF ne les lit pas.
+    private const string CleVignettes = "bibliotheque.affichage.vignettes";
+    private const string CleVignetteListe = "bibliotheque.liste.vignette";
+    /// <summary>Des centaines de couvertures d'un coup alourdiraient la fenêtre : on les montre par paquets.</summary>
+    private const int PasAffichage = 60;
+
+    private bool _vignettes;
+    private bool _vignetteListe;
+    private char? _lettre;
+    private int _affichees = PasAffichage;
+
+    private string? Url(Livre livre) => Couvertures.Url(DepotCouvertures.Chemin(livre.Couverture));
+
+    private void ChoisirAffichage(bool vignettes)
+    {
+        _vignettes = vignettes;
+        Parametres.EcrireBooleen(CleVignettes, vignettes);
+    }
+
+    private void ChoisirVignetteListe(bool afficher)
+    {
+        _vignetteListe = afficher;
+        Parametres.EcrireBooleen(CleVignetteListe, afficher);
+    }
+
+    private void ChoisirLettre(char? lettre)
+    {
+        _lettre = lettre;
+        _affichees = PasAffichage;
+    }
+
+    private async Task Ouvrir(Livre livre)
+    {
+        Vm.Selection = livre;
+        await Vm.ModifierCommand.ExecuteAsync(null);
+    }
+
     private SfGrid<Livre>? _grille;
     private SelecteurColonnes _colonnes = default!;
 
@@ -128,6 +269,8 @@
             () => Vm.ColonnesMasquees,
             valeur => Vm.ColonnesMasquees = valeur);
 
+        _vignettes = Parametres.LireBooleen(CleVignettes);
+        _vignetteListe = Parametres.LireBooleen(CleVignetteListe);
         Vm.Livres.CollectionChanged += SurCollection;
         base.OnInitialized();
     }
@@ -157,6 +300,7 @@
     private void SurCollection(object? sender, NotifyCollectionChangedEventArgs e)
     {
         _lignes = null;
+        _affichees = PasAffichage;
         // La liste rechargée, la ligne choisie n'y est plus — même effet que la
         // remise à zéro de l'ItemsSource dans le WPF, qui vidait la sélection.
         Vm.Selection = null;
