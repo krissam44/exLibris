@@ -46,12 +46,12 @@ internal static class Program
             ? dossier
             : Composition.DossierDonnees();
 
-        // Les couvertures doivent être connues AVANT la construction : Photino
-        // reçoit sa source de fichiers à la création (voir Services.Couvertures).
+        // Les couvertures doivent être connues AVANT la construction : PhotinoX
+        // reçoit sa source de fichiers du constructeur (voir Services.Couvertures).
         var couvertures = new Services.Couvertures(Path.Combine(dossierDonnees, "couvertures"));
 
-        var builder = PhotinoBlazorAppBuilder.CreateDefault(
-            couvertures.SourceDeFichiers(Path.Combine(AppContext.BaseDirectory, "wwwroot")), args);
+        var builder = PhotinoBlazorApp.CreateBuilder(args)
+            .UseFileProvider(_ => couvertures.SourceDeFichiers(Path.Combine(AppContext.BaseDirectory, "wwwroot")));
         var services = builder.Services;
 
         services.AddLogging();
@@ -61,6 +61,7 @@ internal static class Program
 
         services.AddExlibrisDonnees(dossierDonnees, configuration["Lirevia:ApiUrl"] ?? string.Empty);
         services.AddSingleton(couvertures);
+        services.AddSingleton<Services.Fenetre>();
 
         // ----- Les écrans et les dialogues
         //
@@ -80,7 +81,9 @@ internal static class Program
 
         builder.RootComponents.Add<App>("app");
 
-        var app = builder.Build();
+        using var app = builder.Build();
+        // La fenêtre, posée ici pour les sélecteurs de fichiers (voir Services.Fenetre).
+        app.Services.GetRequiredService<Services.Fenetre>().Principale = app.MainWindow;
         Composition.InitialiserReferentiels(app.Services);
 
         // Le dossier servi doit être CELUI où CouvertureDepot range les images.
@@ -109,7 +112,7 @@ internal static class Program
             .SetMaximized(true);
 
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
-            app.MainWindow.ShowMessage("Erreur", e.ExceptionObject.ToString());
+            app.MainWindow.ShowMessage("Erreur", e.ExceptionObject.ToString() ?? "Erreur inconnue", icon: global::Photino.NET.PhotinoDialogIcon.Error);
 
         app.Run();
     }

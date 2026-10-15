@@ -26,21 +26,22 @@ if [[ $EUID -eq 0 ]]; then
   exit 1
 fi
 
-if [[ ! -f "$SOURCE/Exlibris" || ! -f "$SOURCE/Photino.Native.so" ]]; then
+if [[ ! -f "$SOURCE/Exlibris" || ! -f "$SOURCE/PhotinoX.Native.so" ]]; then
   echo "Ce script doit rester dans le dossier publié (Exlibris introuvable à côté)."
   exit 1
 fi
 
 # --- Prérequis système -------------------------------------------------------
-# Photino.Native 4.0.x exige glibc >= 2.38 (Ubuntu 24.04+, Debian 13+, Zorin 18+).
+# PhotinoX.Native 5.3 exige glibc >= 2.34 et WebKitGTK 4.1 (Ubuntu 22.04+,
+# Debian 12+, Zorin OS 17+) ; Photino.Native 4.0.x, avant lui, voulait 2.38.
 # Vérifié AVANT toute copie : un échec ici ne laisse rien derrière.
-if ldd "$SOURCE/Photino.Native.so" 2>&1 | grep -q "version \`GLIBC"; then
+if ldd "$SOURCE/PhotinoX.Native.so" 2>&1 | grep -q "version \`GLIBC"; then
   echo "Système trop ancien pour Ex-libris : $(ldd --version | head -1)"
-  echo "Il faut glibc >= 2.38 (Ubuntu 24.04+, Debian 13+, Zorin OS 18+)."
+  echo "Il faut glibc >= 2.34 (Ubuntu 22.04+, Debian 12+, Zorin OS 17+)."
   exit 1
 fi
 
-manquantes=$(ldd "$SOURCE/Photino.Native.so" | awk '/=> not found/ {print $1}')
+manquantes=$(ldd "$SOURCE/PhotinoX.Native.so" | awk '/=> not found/ {print $1}')
 if [[ -n "$manquantes" ]]; then
   echo "Bibliothèques manquantes :"
   echo "$manquantes" | sed 's/^/  /'

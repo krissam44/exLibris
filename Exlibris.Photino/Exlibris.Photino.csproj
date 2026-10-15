@@ -25,7 +25,7 @@
     <!-- Numérotation PROPRE à la version Photino depuis le 04/10/2026 (0.2.1
          était celui du WPF au moment du portage). L'installateur la lit dans
          l'exécutable : c'est le seul endroit où l'incrémenter. -->
-    <Version>0.2.2</Version>
+    <Version>0.3.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -34,18 +34,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Photino.Blazor" Version="4.0.13" />
-    <!-- Photino.Blazor 4.0.13 ne cible que net8/net9 et tirerait WebView 9.0.x :
-         on remonte explicitement à la version alignée sur le runtime .NET 10. -->
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebView" Version="10.0.11" />
-    <PackageReference Include="MudBlazor" Version="9.8.0" />
+    <!-- PhotinoX.Blazor, le fork maintenu de Photino.Blazor (dernière version
+         4.0.13 de janvier 2025, .NET 8/9 seulement) : il cible .NET 10, tire
+         lui-même la bonne WebView, et sous Linux se contente de glibc 2.34.
+         Même socle que Budgevia, Locavia et Prospevia (passage le 15/10/2026). -->
+    <PackageReference Include="PhotinoX.Blazor" Version="5.3.4" />
+    <PackageReference Include="MudBlazor" Version="9.11.0" />
     <!-- Même version que Syncfusion WPF, pour que la même clé de licence vaille. -->
     <PackageReference Include="Syncfusion.Blazor.Grid" Version="34.2.5" />
     <PackageReference Include="Syncfusion.Blazor.Themes" Version="34.2.5" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.11" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.11" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
   </ItemGroup>
 
   <!-- ViewModels du projet WPF repris TELS QUELS, par lien : une seule source

@@ -2,7 +2,6 @@ using Exlibris.Services;
 using Exlibris.ViewModels;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
-using Photino.NET;
 
 namespace Exlibris.Photino.Services;
 
@@ -13,7 +12,7 @@ namespace Exlibris.Photino.Services;
 ///
 /// Doit être enregistré en <c>scoped</c> : voir Program.cs.
 /// </summary>
-public sealed class DialogueService(IDialogService dialogues, PhotinoWindow fenetre, Couvertures couvertures)
+public sealed class DialogueService(IDialogService dialogues, Fenetre fenetres, Couvertures couvertures)
     : IDialogueService
 {
     /// <summary>
@@ -107,12 +106,18 @@ public sealed class DialogueService(IDialogService dialogues, PhotinoWindow fene
             // Windows donne aux JPEG enregistrés depuis un navigateur.
             "Images|*.jpg;*.jpeg;*.jfif;*.jpe;*.png;*.gif;*.bmp;*.webp|Tous les fichiers|*.*");
 
-    public Task<string?> ChoisirFichierAsync(string titre, string filtre)
+    /// <summary>
+    /// La version ASYNCHRONE du sélecteur, jamais la synchrone : la
+    /// documentation de PhotinoX le dit (« Async version is required for
+    /// PhotinoX.Blazor as synchronous version crashes »), et Budgevia l'a
+    /// vécu — après « Annuler », plus un bouton ne répondait.
+    /// </summary>
+    public async Task<string?> ChoisirFichierAsync(string titre, string filtre)
     {
-        var choix = fenetre.ShowOpenFile(titre, defaultPath: null, multiSelect: false,
+        var choix = await fenetres.Principale.ShowOpenFileAsync(titre, defaultPath: null, multiSelect: false,
             filters: Filtres(filtre));
 
-        return Task.FromResult(choix is { Length: > 0 } && !string.IsNullOrEmpty(choix[0]) ? choix[0] : null);
+        return choix is { Length: > 0 } && !string.IsNullOrEmpty(choix[0]) ? choix[0] : null;
     }
 
     /// <summary>

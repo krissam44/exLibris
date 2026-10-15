@@ -188,8 +188,10 @@ powershell -ExecutionPolicy Bypass -File .\publier-photino.ps1
   sur plus de 200 Mo livrés par le paquet.
 - **Windows** demande le runtime WebView2, présent d'office sous Windows 11.
 
-**Linux** — prérequis : glibc 2.38 ou plus (Ubuntu 24.04+, Debian 13+,
-Zorin OS 18+), et les paquets `libwebkit2gtk-4.1-0` et `libnotify4`.
+**Linux** — prérequis : glibc 2.34 ou plus (Ubuntu 22.04+, Debian 12+,
+Zorin OS 17+), et les paquets `libwebkit2gtk-4.1-0` et `libnotify4`. Depuis
+la 0.3.0, Ex-libris repose sur PhotinoX.Blazor (avant : Photino.Blazor 4.0.13,
+qui voulait glibc 2.38).
 Sur le poste, extraire l'archive dans un dossier, puis :
 
 ```bash
