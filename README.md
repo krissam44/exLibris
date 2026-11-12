@@ -26,6 +26,14 @@ d'ISBN).
 
 ## Ce qu'il sait faire
 
+**L'accueil**
+- Les chiffres de la bibliothèque, la part de chaque propriétaire (un clic
+  ouvre ses ouvrages), les derniers ajouts en couvertures et les fiches à
+  reprendre.
+- **Idées cadeaux** : pour chacun, les tomes qui lui manquent dans les séries
+  qu'il a commencées — trous intérieurs, et la fin quand le nombre de tomes de
+  la série est connu.
+
 **La bibliothèque**
 - Liste triable et filtrable (titre, auteurs, éditeur, genre, catégorie,
   rangement, année, lu…), colonnes à la carte, recherche instantanée.
@@ -69,15 +77,14 @@ d'ISBN).
   catégories ou de propriétaires saisis de plusieurs façons
   (« Gallimard » et « Éditions Gallimard »).
 
-## Les trois applications du dépôt
+## Les deux applications du dépôt
 
 | Projet | Plateforme | Rôle |
 |---|---|---|
 | `Exlibris.Photino` | Windows, Linux | **L'application principale**, en Blazor dans une fenêtre de bureau (PhotinoX.Blazor) |
-| `Exlibris` | Windows | La première version, en WPF ; même base, mêmes règles |
 | `Exlibris.Scanner` | Android | Scanner de codes-barres pour l'inventaire : on vise les codes-barres en rayon, il produit le fichier CSV (à envoyer par courriel, cloud ou câble) à verser dans l'inventaire |
 
-Les trois partagent `Exlibris.Data` (accès SQLite, sources en ligne) et
+Les deux partagent `Exlibris.Data` (accès SQLite, sources en ligne) et
 `Exlibris.Shared` (modèle, règles), testés par `Exlibris.Tests`.
 
 ## Installer
@@ -131,7 +138,7 @@ dotnet run --project Exlibris.Photino/Exlibris.Photino.csproj
 pour les particuliers et petites structures avec la
 [Community License](https://www.syncfusion.com/products/communitylicense).
 Sans clé, l'application fonctionne, avec une bannière d'évaluation. La clé se
-met dans `Exlibris/appsettings.Local.json` (jamais versionné) :
+met dans `Exlibris.Photino/appsettings.Local.json` (jamais versionné) :
 
 ```json
 {

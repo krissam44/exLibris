@@ -163,6 +163,19 @@ public class LivreDepot(FabriqueConnexion fabrique)
     }
 
     /// <summary>
+    /// Les derniers ouvrages entrés, le plus récent d'abord — la rangée de
+    /// couvertures de l'accueil, qui montre ce qu'un import vient d'apporter.
+    /// L'identifiant départage les fiches d'un même import, créées dans la même
+    /// seconde.
+    /// </summary>
+    public List<Livre> DerniersAjouts(int nombre = 12)
+    {
+        using var con = fabrique.Ouvrir();
+        return con.Query<Livre>($"{Colonnes} ORDER BY l.cree_le DESC, l.id DESC LIMIT @nombre",
+            new { nombre = Math.Clamp(nombre, 1, 100) }).AsList();
+    }
+
+    /// <summary>
     /// Les livres portant déjà cet ISBN.
     ///
     /// Sert à SIGNALER un doublon à la saisie, jamais à le refuser : deux

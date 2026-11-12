@@ -29,7 +29,7 @@ param(
     # (La valeur d'avant pointait sur « lirevia-logo-front-bleu.png », reste de
     # la première vie de ce script.)
     [string]$Source      = (Join-Path $PSScriptRoot 'logo-exlibris.png'),
-    [string]$Destination = (Join-Path $PSScriptRoot '..\Exlibris\Assets\exlibris.ico'),
+    [string]$Destination = (Join-Path $PSScriptRoot '..\Exlibris.Photino\Assets\exlibris.ico'),
 
     # Couleur de la plaque posée SOUS la marque, ou « aucune » pour garder le
     # fond transparent. Voir le long commentaire plus bas : sans plaque, le E

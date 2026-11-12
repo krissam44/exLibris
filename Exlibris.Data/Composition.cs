@@ -54,6 +54,7 @@ public static class Composition
         services.AddSingleton(fabrique);
         services.AddSingleton<LivreDepot>();
         services.AddSingleton<ReferentielDepot>();
+        services.AddSingleton<TableauDeBordDepot>();
 
         // Un SEUL HttpClient pour toute la vie de l'application. En créer un par
         // recherche épuiserait les sockets — le défaut classique de HttpClient,

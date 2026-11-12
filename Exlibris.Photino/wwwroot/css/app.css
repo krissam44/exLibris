@@ -365,6 +365,100 @@ html, body {
     font-weight: 600;
 }
 
+/* ---------- Accueil ---------- */
+.page-accueil {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.rangee-chiffres {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+.chiffre .part {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--mud-palette-text-secondary);
+    margin-left: 6px;
+}
+
+.rangee-chiffres.petits { grid-template-columns: repeat(2, 1fr); }
+.rangee-chiffres.petits .valeur { font-size: 20px; }
+
+.entete-carte {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.entete-carte .mud-input-control { margin-left: auto; flex: none; }
+
+.rangee-proprietaires {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.tuile-proprietaire {
+    /* Colonne explicite : dans un <button>, nom, nombre et légende se
+       rangeaient sur une seule ligne. */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 160px;
+    padding: 10px 14px;
+    text-align: left;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 6px;
+    background: var(--mud-palette-surface);
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    transition: box-shadow .15s, border-color .15s;
+}
+
+.tuile-proprietaire:hover { border-color: var(--mud-palette-primary); box-shadow: 0 2px 8px rgba(0, 0, 0, .12); }
+.tuile-proprietaire .nom { font-weight: 600; color: var(--mud-palette-primary); }
+.tuile-proprietaire .valeur { font-size: 24px; font-weight: 600; }
+
+.deux-cartes {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 12px;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .deux-cartes { grid-template-columns: 1fr; }
+}
+
+.liste-idees {
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.liste-idees .idee {
+    display: grid;
+    grid-template-columns: minmax(140px, 1fr) 2fr auto;
+    gap: 12px;
+    align-items: baseline;
+    padding: 6px 0;
+}
+
+.liste-idees .idee + .idee { border-top: 1px solid var(--mud-palette-lines-default); }
+.liste-idees .serie { font-weight: 600; }
+.liste-idees .manquants { color: var(--mud-palette-primary); }
+
+.rangee-derniers {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+}
+
 /* ---------- Bibliothèque : vignettes (comme la borne de Lirevia) ---------- */
 .bascule-affichage { display: flex; gap: 2px; }
 

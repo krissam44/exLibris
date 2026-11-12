@@ -1,33 +1,198 @@
 @page "/"
 @inherits VueBase<AccueilViewModel>
+@using Exlibris.Shared.Modeles
+@inject TableauDeBordDepot Tableau
+@inject LivreDepot Livres
+@inject ParametreDepot Parametres
+@inject ReferentielDepot Referentiels
+@inject NoticeEnLigneService Notices
+@inject CouvertureDepot DepotCouvertures
+@inject Services.Couvertures Couvertures
+@inject Exlibris.Services.IDialogueService Dialogues
+@inject BibliothequeViewModel Bibliotheque
+@inject NavigationManager Navigation
 
-<MudPaper Elevation="1" Class="carte">
-    <div class="titre-carte">Votre bibliothèque</div>
-    <div class="aide">
-        Les quatre chiffres qu'on veut voir en ouvrant l'application. Le dernier dit
-        combien de fiches attendent encore d'être complétées par les bases publiques.
+@* Le tableau de bord (12/11/2026) : les chiffres, puis ce qu'on vient y
+   chercher — à qui appartient quoi, quels tomes manquent à chacun (les idées
+   cadeaux), ce que le dernier import a apporté, ce qui reste à reprendre. *@
+
+<div class="page-accueil">
+
+    @* ================= Les chiffres ================= *@
+    <MudPaper Elevation="1" Class="carte">
+        <div class="titre-carte">Votre bibliothèque</div>
+        <div class="rangee-chiffres mt-2">
+            <div class="chiffre"><div class="legende">Ouvrages</div><div class="valeur">@Vm.NbLivres.ToString("N0")</div></div>
+            <div class="chiffre"><div class="legende">Séries</div><div class="valeur">@Vm.NbSeries.ToString("N0")</div></div>
+            <div class="chiffre">
+                <div class="legende">Lus</div>
+                <div class="valeur">@_lus.ToString("N0")<span class="part">@Part(_lus, Vm.NbLivres)</span></div>
+            </div>
+            <div class="chiffre"><div class="legende">Sans ISBN</div><div class="valeur">@Vm.NbSansIsbn.ToString("N0")</div></div>
+            <div class="chiffre"><div class="legende">À compléter</div><div class="valeur">@Vm.NbNonEnrichis.ToString("N0")</div></div>
+        </div>
+    </MudPaper>
+
+    @* ================= Par propriétaire =================
+       Une carte par personne ; un clic ouvre la Bibliothèque filtrée sur elle. *@
+    @if (_proprietairesActifs && _parts.Count > 0)
+    {
+        <MudPaper Elevation="1" Class="carte">
+            <div class="titre-carte">Par propriétaire</div>
+            <div class="aide">Cliquez sur un nom pour voir ses ouvrages dans la Bibliothèque.</div>
+            <div class="rangee-proprietaires mt-2">
+                @foreach (var p in _parts)
+                {
+                    <button type="button" class="tuile-proprietaire" @onclick="() => VoirOuvrages(p.Id)">
+                        <div class="nom">@p.Nom</div>
+                        <div class="valeur">@p.NbOuvrages.ToString("N0")</div>
+                        <div class="legende">ouvrage@(p.NbOuvrages > 1 ? "s" : "") · @p.NbLus lu@(p.NbLus > 1 ? "s" : "")</div>
+                    </button>
+                }
+            </div>
+        </MudPaper>
+    }
+
+    <div class="deux-cartes">
+
+        @* ================= Idées cadeaux ================= *@
+        <MudPaper Elevation="1" Class="carte">
+            <div class="entete-carte">
+                <div class="titre-carte">Idées cadeaux</div>
+                @if (_proprietairesActifs && _parts.Count > 0)
+                {
+                    <MudSelect T="long" Label="Pour" Value="_pour" ValueChanged="ChoisirPour"
+                               ToStringFunc="id => _parts.FirstOrDefault(p => p.Id == id)?.Nom ?? string.Empty"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Style="width: 220px">
+                        @foreach (var p in _parts)
+                        {
+                            <MudSelectItem T="long" Value="p.Id">@p.Nom</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+            </div>
+            <div class="aide">Les tomes qui manquent dans les séries commencées@(_proprietairesActifs ? ", sur ses seules étagères" : "").</div>
+
+            @if (_idees.Count == 0)
+            {
+                <div class="aide mt-3">
+                    Aucun tome manquant détecté. Le calcul s'appuie sur les <strong>numéros de tome</strong>,
+                    à saisir dans la fiche : sans eux, impossible de savoir ce qui manque. Le nombre de tomes
+                    d'une série (écran Séries) révèle en plus la fin qui manque.
+                </div>
+            }
+            else
+            {
+                <div class="liste-idees mt-2">
+                    @foreach (var idee in _idees)
+                    {
+                        <div class="idee">
+                            <div class="serie">@idee.Serie</div>
+                            <div class="manquants">@idee.Resume</div>
+                            <div class="aide">@idee.Possedes possédé@(idee.Possedes > 1 ? "s" : "")</div>
+                        </div>
+                    }
+                </div>
+            }
+        </MudPaper>
+
+        @* ================= Fiches à reprendre ================= *@
+        <MudPaper Elevation="1" Class="carte">
+            <div class="titre-carte">Fiches à reprendre</div>
+            <div class="aide">Parmi les fiches complétées, ce qui leur manque encore.</div>
+            <div class="rangee-chiffres petits mt-2">
+                <div class="chiffre"><div class="legende">Sans couverture</div><div class="valeur">@_reprendre.SansCouverture</div></div>
+                <div class="chiffre"><div class="legende">Sans auteur</div><div class="valeur">@_reprendre.SansAuteur</div></div>
+                <div class="chiffre"><div class="legende">Sans genre</div><div class="valeur">@_reprendre.SansGenre</div></div>
+                <div class="chiffre"><div class="legende">Sans résumé</div><div class="valeur">@_reprendre.SansResume</div></div>
+            </div>
+        </MudPaper>
     </div>
 
-    <MudGrid Spacing="3" Class="mt-2">
-        <MudItem xs="3" Class="chiffre">
-            <div class="legende">Ouvrages</div>
-            <div class="valeur">@Vm.NbLivres.ToString("N0")</div>
-        </MudItem>
-        <MudItem xs="3" Class="chiffre">
-            <div class="legende">Séries</div>
-            <div class="valeur">@Vm.NbSeries.ToString("N0")</div>
-        </MudItem>
-        <MudItem xs="3" Class="chiffre">
-            <div class="legende">Sans ISBN</div>
-            <div class="valeur">@Vm.NbSansIsbn.ToString("N0")</div>
-        </MudItem>
-        <MudItem xs="3" Class="chiffre">
-            <div class="legende">À compléter</div>
-            <div class="valeur">@Vm.NbNonEnrichis.ToString("N0")</div>
-        </MudItem>
-    </MudGrid>
-</MudPaper>
+    @* ================= Derniers ajouts ================= *@
+    @if (_derniers.Count > 0)
+    {
+        <MudPaper Elevation="1" Class="carte">
+            <div class="titre-carte">Derniers ajouts</div>
+            <div class="aide">Un clic montre la fiche.</div>
+            <div class="rangee-derniers mt-2">
+                @foreach (var livre in _derniers)
+                {
+                    <div class="carte-vignette" title="@livre.TitreComplet" @onclick="() => Consulter(livre)">
+                        @if (Couvertures.Url(DepotCouvertures.Chemin(livre.Couverture)) is { } url)
+                        {
+                            <img src="@url" alt="" loading="lazy" class="couverture-vignette" />
+                        }
+                        else
+                        {
+                            <div class="couverture-vignette sans-couverture"><span>@(Vignettes.Initiale(livre) is { } i && i != Vignettes.Chiffres ? i.ToString() : "?")</span></div>
+                        }
+                        <div class="texte-vignette">
+                            <div class="titre-vignette">@livre.TitreComplet</div>
+                            <div class="auteur-vignette">@livre.Auteurs</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </MudPaper>
+    }
+</div>
 
 @code {
-    protected override void Arrivee() => Vm.Charger();
+    private bool _proprietairesActifs;
+    private int _lus;
+    private List<TableauDeBordDepot.PartProprietaire> _parts = [];
+    private List<TableauDeBordDepot.IdeeCadeau> _idees = [];
+    private TableauDeBordDepot.FichesAReprendre _reprendre = new();
+    private List<Livre> _derniers = [];
+
+    /// <summary>Le propriétaire des idées cadeaux ; gardé d'une visite à l'autre de la page.</summary>
+    private long _pour = -1;
+
+    protected override void Arrivee()
+    {
+        Vm.Charger();
+
+        _proprietairesActifs = Parametres.LireBooleen(ParametreDepot.ProprietairesActifs);
+        _lus = Tableau.NombreLus();
+        _parts = _proprietairesActifs ? Tableau.ParProprietaire() : [];
+        _reprendre = Tableau.AReprendre();
+        _derniers = Livres.DerniersAjouts(12);
+
+        // Par défaut, le premier qui a des ouvrages — celui pour qui on cherche
+        // un cadeau, plutôt que « sans propriétaire ».
+        if (_parts.All(p => p.Id != _pour))
+            _pour = _parts.FirstOrDefault(p => p.NbOuvrages > 0 && p.Id != Proprietaire.Aucun)?.Id
+                    ?? _parts.FirstOrDefault()?.Id ?? -1;
+
+        ChargerIdees();
+    }
+
+    private void ChoisirPour(long id)
+    {
+        _pour = id;
+        ChargerIdees();
+    }
+
+    /// <summary>Sans propriétaires distingués, les idées portent sur toute la bibliothèque.</summary>
+    private void ChargerIdees() =>
+        _idees = Tableau.IdeesCadeaux(_proprietairesActifs && _pour >= 0 ? _pour : null);
+
+    private static string Part(int n, int total) => total == 0 ? string.Empty : $" {100 * n / total} %";
+
+    /// <summary>La Bibliothèque, filtrée sur ce propriétaire.</summary>
+    private void VoirOuvrages(long id)
+    {
+        Bibliotheque.Recherche = string.Empty;
+        Bibliotheque.FiltreProprietaire = id;
+        Navigation.NavigateTo("bibliotheque");
+    }
+
+    /// <summary>La fiche en consultation, comme le double-clic de la Bibliothèque.</summary>
+    private async Task Consulter(Livre livre)
+    {
+        var formulaire = new LivreFormulaireViewModel(
+            Referentiels, Notices, DepotCouvertures, Dialogues, _proprietairesActifs, livre);
+        await ((Services.DialogueService)Dialogues).ConsulterAsync(livre.TitreComplet, formulaire);
+    }
 }
