@@ -99,6 +99,32 @@ public class LivreFormulaireTests : IDisposable
         Assert.Null(livre.EnrichiLe);
     }
 
+    [Fact]
+    public void Le_resume_saisi_dans_la_fiche_est_enregistre()
+    {
+        var id = _livres.Creer(new Livre { Titre = "Astérix en Corse", Resume = "Ancien." });
+        var formulaire = Ouvrir(_livres.ParId(id)!);
+
+        Assert.Equal("Ancien.", formulaire.Resume);
+        formulaire.Resume = "  Les Gaulois partent en Corse.  ";
+
+        Assert.Equal("Les Gaulois partent en Corse.", formulaire.VersLivre().Resume);
+    }
+
+    [Fact]
+    public void Le_proprietaire_d_une_fiche_survit_quand_le_reglage_est_eteint()
+    {
+        // L'import a posé « Lucas » ; on éteint l'option, on corrige un titre.
+        // Le champ est caché, mais la fiche ne doit pas perdre son propriétaire.
+        var lucas = _referentiels.ResoudreProprietaire("Lucas");
+        var id = _livres.Creer(new Livre { Titre = "Asterix en Corse", ProprietaireId = lucas });
+
+        var formulaire = Ouvrir(_livres.ParId(id)!);
+        formulaire.Titre = "Astérix en Corse";
+
+        Assert.Equal(lucas, formulaire.VersLivre().ProprietaireId);
+    }
+
     /// <summary>
     /// Aucun dialogue ne doit s'ouvrir dans ces tests : on n'y exerce que la
     /// construction du livre. Toute réponse est un refus.

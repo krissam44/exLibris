@@ -15,7 +15,9 @@
 
     <div class="saisie">
 
-        @* ISBN, année et la recherche en ligne. *@
+        @* ISBN, année et la recherche en ligne ; Lu et l'appréciation au bout de
+           la ligne (demande du 12/11/2026) : deux cases courtes, qui laissent
+           leur ancienne ligne au résumé. *@
         <div class="ligne-isbn">
             <MudTextField T="string" Label="ISBN" Value="Vm.Isbn" ValueChanged="v => Vm.Isbn = v ?? string.Empty"
                           Immediate="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="champ-isbn" />
@@ -32,8 +34,26 @@
             {
                 <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Primary" />
             }
-            <span class="legende">@Vm.Avertissement</span>
+            <div class="lecture">
+                <MudCheckBox T="bool" Label="Lu" Value="Vm.Lu" ValueChanged="v => Vm.Lu = v" Dense="true" />
+                @* Liste FERMÉE : on choisit dans le lot, on n'invente pas. *@
+                <MudSelect T="int?" Label="Appréciation" Value="Vm.Appreciation" ValueChanged="v => Vm.Appreciation = v"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" Style="width: 130px">
+                    <MudSelectItem T="int?" Value="null">—</MudSelectItem>
+                    @for (var note = 1; note <= 5; note++)
+                    {
+                        var n = note;
+                        <MudSelectItem T="int?" Value="n">@n</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
         </div>
+        @* L'avertissement d'ISBN passe SOUS la ligne : à côté du bouton, il
+           n'a plus la place depuis que Lu et l'appréciation l'y ont rejoint. *@
+        @if (Vm.Avertissement.Length > 0)
+        {
+            <div class="legende mb-1">@Vm.Avertissement</div>
+        }
         @if (Vm.MessageRecherche.Length > 0)
         {
             <div class="aide mb-2">@Vm.MessageRecherche</div>
@@ -85,22 +105,13 @@
                           Immediate="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
         </div>
 
-        <div class="ligne-lecture">
-            <MudCheckBox T="bool" Label="Lu" Value="Vm.Lu" ValueChanged="v => Vm.Lu = v" Dense="true" />
-            @* Liste FERMÉE : on choisit dans le lot, on n'invente pas. *@
-            <MudSelect T="int?" Label="Appréciation" Value="Vm.Appreciation" ValueChanged="v => Vm.Appreciation = v"
-                       Variant="Variant.Outlined" Margin="Margin.Dense" Style="width: 130px">
-                <MudSelectItem T="int?" Value="null">—</MudSelectItem>
-                @for (var note = 1; note <= 5; note++)
-                {
-                    var n = note;
-                    <MudSelectItem T="int?" Value="n">@n</MudSelectItem>
-                }
-            </MudSelect>
-        </div>
+        @* Les deux champs où l'on écrit des phrases : plusieurs lignes, et
+           Entrée y passe à la ligne au lieu d'enregistrer. Le résumé d'abord :
+           il décrit l'ouvrage, le commentaire dit ce que VOUS en pensez. *@
+        <MudTextField T="string" Label="Résumé" Value="Vm.Resume" ValueChanged="v => Vm.Resume = v ?? string.Empty"
+                      Immediate="true" Lines="4" Class="bloc"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" spellcheck="true" />
 
-        @* Le seul champ où l'on écrit une phrase : plusieurs lignes, et Entrée
-           y passe à la ligne au lieu d'enregistrer. *@
         <MudTextField T="string" Label="Commentaire" Value="Vm.Commentaire" ValueChanged="v => Vm.Commentaire = v ?? string.Empty"
                       Immediate="true" Lines="3"
                       Variant="Variant.Outlined" Margin="Margin.Dense" spellcheck="true" />

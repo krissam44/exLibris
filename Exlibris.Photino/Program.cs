@@ -3,6 +3,7 @@ using Exlibris.Data;
 using Exlibris.ViewModels;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
 using Photino.Blazor;
 using Syncfusion.Blazor;
@@ -54,7 +55,11 @@ internal static class Program
             .UseFileProvider(_ => couvertures.SourceDeFichiers(Path.Combine(AppContext.BaseDirectory, "wwwroot")));
         var services = builder.Services;
 
-        services.AddLogging();
+        // Les erreurs dans erreurs.log, à côté de la base : sans destination, une
+        // exception de rendu figeait la fenêtre sans laisser de trace.
+        Directory.CreateDirectory(dossierDonnees);
+        services.AddLogging(journal => journal.AddProvider(
+            new Services.JournalErreurs(Path.Combine(dossierDonnees, "erreurs.log"))));
         services.AddMudServices();
         services.AddSyncfusionBlazor();
         services.AddSingleton<ISyncfusionStringLocalizer, Services.SyncfusionFrancais>();

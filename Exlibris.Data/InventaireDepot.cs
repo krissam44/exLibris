@@ -36,11 +36,19 @@ public class InventaireDepot(FabriqueConnexion fabrique)
     /// duplique pas, et le bilan dit combien de lignes ont été écartées. Le
     /// second exemplaire se saisit à la main, où le geste est délibéré.
     ///
+    /// <b>« Déjà présent » s'entend CHEZ CE PROPRIÉTAIRE</b> (demande du
+    /// 12/11/2026). Le fils et le petit-fils peuvent avoir le même album : c'est
+    /// même ce qu'on veut savoir avant d'offrir. Le second inventaire crée donc
+    /// sa propre fiche ; réimporter le même fichier pour le même propriétaire,
+    /// lui, ne duplique toujours rien. Sans propriétaire (<c>null</c>), la
+    /// comparaison se fait avec les fiches qui n'en ont pas non plus — le
+    /// comportement d'avant pour une bibliothèque qui ignore la notion.
+    ///
     /// Tout passe dans UNE transaction : un import interrompu à mi-course
     /// laisserait sinon la moitié d'une étagère en base, sans qu'on sache
     /// laquelle.
     /// </summary>
-    public Bilan Importer(IEnumerable<LigneInventaire> lignes)
+    public Bilan Importer(IEnumerable<LigneInventaire> lignes, long? proprietaireId = null)
     {
         // Toutes les lignes porteuses d'un ISBN. On compte SUR CELLES-CI, et non
         // sur les seules retenues : chaque ligne du fichier doit se retrouver
@@ -57,8 +65,11 @@ public class InventaireDepot(FabriqueConnexion fabrique)
         using var con = fabrique.Ouvrir();
         using var tx = con.BeginTransaction();
 
+        // `IS` et non `=` : il compare aussi NULL à NULL, ce qui couvre le cas
+        // « sans propriétaire » dans la même requête.
         var connus = con.Query<string>(
-                "SELECT isbn FROM livres WHERE isbn IS NOT NULL", transaction: tx)
+                "SELECT isbn FROM livres WHERE isbn IS NOT NULL AND proprietaire_id IS @proprietaireId",
+                new { proprietaireId }, tx)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var crees = 0;
@@ -72,9 +83,9 @@ public class InventaireDepot(FabriqueConnexion fabrique)
             // à l'ISBN rendrait la fiche trouvable par un texte que personne ne
             // tape dans une barre de recherche.
             con.Execute("""
-                INSERT INTO livres (isbn, titre, cle_recherche, rangement, source_notice, enrichi_le)
-                VALUES (@Isbn, '', '', @Rangement, '', NULL)
-                """, new { ligne.Isbn, ligne.Rangement }, tx);
+                INSERT INTO livres (isbn, titre, cle_recherche, rangement, proprietaire_id, source_notice, enrichi_le)
+                VALUES (@Isbn, '', '', @Rangement, @proprietaireId, '', NULL)
+                """, new { ligne.Isbn, ligne.Rangement, proprietaireId }, tx);
 
             crees++;
         }

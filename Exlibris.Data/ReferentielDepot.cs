@@ -340,8 +340,7 @@ public class ReferentielDepot(FabriqueConnexion fabrique)
         var series = con.Query<Serie>("""
             SELECT s.id, s.nom, s.tomes_annonces AS TomesAnnonces,
                    s.terminee AS Terminee, s.note AS Note,
-                   COUNT(l.id)         AS NbPossedes,
-                   MAX(l.numero_tome)  AS TomeMax
+                   COUNT(l.id)         AS NbPossedes
             FROM series s
             LEFT JOIN livres l ON l.serie_id = s.id AND l.numero_tome IS NOT NULL
             GROUP BY s.id, s.nom, s.tomes_annonces, s.terminee, s.note
@@ -354,8 +353,18 @@ public class ReferentielDepot(FabriqueConnexion fabrique)
             WHERE serie_id IS NOT NULL AND numero_tome IS NOT NULL
             """).ToLookup(t => t.SerieId);
 
+        // ⚠️ Le plus grand tome est calculé ICI, et non par un MAX() en SQL. Une
+        // colonne calculée n'a pas de type déclaré : SQLite rend NULL pour une
+        // série sans tome numéroté, un entier pour les autres, et Dapper, qui
+        // fige le type sur la PREMIÈRE ligne, échouait dès qu'une série sans
+        // tome précédait une série qui en a (« Error parsing column 6 »,
+        // constaté le 12/11/2026 : l'écran des séries et la correction en lot
+        // ne s'ouvraient plus).
         foreach (var serie in series)
+        {
             serie.TomesPossedes = rangs[serie.Id].Select(t => t.Numero).ToList();
+            serie.TomeMax = serie.TomesPossedes.Count > 0 ? serie.TomesPossedes.Max() : null;
+        }
 
         return series;
     }
@@ -453,6 +462,132 @@ public class ReferentielDepot(FabriqueConnexion fabrique)
     {
         using var con = fabrique.Ouvrir();
         return con.Query<Proprietaire>("SELECT id, nom FROM proprietaires ORDER BY nom").AsList();
+    }
+
+    /// <summary>
+    /// Répare les genres et catégories nés d'une étiquette d'Open Library
+    /// (« series:Astérix ») avant que sa lecture ne soit corrigée (12/11/2026).
+    ///
+    /// Pour chacun : les ouvrages SANS série reçoivent celle qu'il nommait, tous
+    /// perdent ce faux genre (ou cette fausse catégorie), puis le libellé
+    /// disparaît. Un ouvrage qui avait déjà une série la garde — elle a pu être
+    /// corrigée à la main. Les autres étiquettes (« place:… ») n'ont rien à
+    /// apporter : elles sont seulement retirées.
+    ///
+    /// Idempotent : au démarrage suivant, il n'y a plus rien à réparer et rien
+    /// n'est écrit. Renvoie le nombre de libellés supprimés.
+    /// </summary>
+    public int ReparerEtiquettesOpenLibrary()
+    {
+        var reparees = 0;
+
+        foreach (var (table, colonne) in new[] { ("genres", "genre_id"), ("classements", "classement_id") })
+        {
+            List<(long Id, string Nom)> etiquettes;
+            using (var con = fabrique.Ouvrir())
+            {
+                etiquettes = con.Query<(long, string)>($"SELECT id, nom FROM {table}").AsList()
+                    .Where(e => NoticeEnLigneService.EstEtiquette(e.Item2))
+                    .ToList();
+            }
+
+            foreach (var (id, nom) in etiquettes)
+            {
+                // Résolue HORS de la transaction : ResoudreSerie ouvre sa propre
+                // connexion, et SQLite n'admet qu'un écrivain à la fois.
+                var serie = NoticeEnLigneService.SerieDuSujet(nom) is { Length: > 0 } s ? ResoudreSerie(s) : null;
+
+                using var con = fabrique.Ouvrir();
+                using var tx = con.BeginTransaction();
+
+                if (serie is not null)
+                    con.Execute($"UPDATE livres SET serie_id = @serie WHERE {colonne} = @id AND serie_id IS NULL",
+                        new { serie, id }, tx);
+
+                con.Execute($"UPDATE livres SET {colonne} = NULL WHERE {colonne} = @id", new { id }, tx);
+                con.Execute("DELETE FROM alias_referentiel WHERE referentiel = @table AND cible_id = @id",
+                    new { table, id }, tx);
+                con.Execute($"DELETE FROM {table} WHERE id = @id", new { id }, tx);
+
+                tx.Commit();
+                reparees++;
+            }
+        }
+
+        return reparees;
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    //  Propriétaires — le seul référentiel qu'on crée AVANT de s'en servir
+    //
+    //  Les autres naissent de la saisie (on tape un éditeur, il existe). Un
+    //  propriétaire, lui, doit exister au moment de verser l'inventaire de ses
+    //  BD : on le crée d'abord, dans Paramètres, puis on le choisit à l'import.
+    // -----------------------------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Crée un propriétaire, ou retrouve celui qui porte déjà ce nom (« lucas »
+    /// retrouve « Lucas »). <c>Id</c> nul pour un nom vide ; <c>Cree</c> dit si
+    /// la ligne est nouvelle, pour que l'écran ne prétende pas avoir ajouté un
+    /// propriétaire qui était déjà là.
+    /// </summary>
+    public (long? Id, bool Cree) CreerProprietaire(string? nom)
+    {
+        var avant = Proprietaires().Count;
+        var id = ResoudreProprietaire(nom);
+        return (id, id is not null && Proprietaires().Count > avant);
+    }
+
+    /// <summary>
+    /// Renomme un propriétaire : « Lucas » devient « Lucas S. », ses ouvrages
+    /// suivent puisqu'ils portent son identifiant.
+    ///
+    /// Renvoie <c>false</c>, sans rien écrire, si un AUTRE propriétaire porte
+    /// déjà ce nom : renommer « Lulu » en « Lucas » ferait deux « Lucas », ce
+    /// que la clé unique refuserait d'ailleurs. Réunir deux propriétaires est le
+    /// travail de <see cref="Fusionner"/>, qui sait déplacer leurs ouvrages.
+    /// </summary>
+    public bool RenommerProprietaire(long id, string? nom)
+    {
+        var propre = CleReferentiel.Tronquer(nom, LongueurNom);
+        if (propre.Length == 0) return false;
+
+        var cle = Cle("proprietaires", propre);
+
+        using var con = fabrique.Ouvrir();
+
+        var occupe = con.ExecuteScalar<long?>(
+            "SELECT id FROM proprietaires WHERE cle_recherche = @cle AND id <> @id", new { cle, id });
+        if (occupe is not null) return false;
+
+        return con.Execute(
+            "UPDATE proprietaires SET nom = @propre, cle_recherche = @cle WHERE id = @id",
+            new { id, propre, cle }) > 0;
+    }
+
+    /// <summary>
+    /// Supprime un propriétaire. Ses ouvrages RESTENT dans la bibliothèque,
+    /// simplement sans propriétaire (<c>ON DELETE SET NULL</c>) : on retire un
+    /// nom, pas une étagère. Renvoie le nombre d'ouvrages ainsi libérés.
+    ///
+    /// Les alias qui pointaient vers lui partent avec : la résolution les
+    /// ignorerait déjà (elle joint la cible), mais une ligne morte n'a pas à
+    /// rester en base.
+    /// </summary>
+    public int SupprimerProprietaire(long id)
+    {
+        using var con = fabrique.Ouvrir();
+        using var tx = con.BeginTransaction();
+
+        var liberes = con.ExecuteScalar<int>(
+            "SELECT COUNT(*) FROM livres WHERE proprietaire_id = @id", new { id }, tx);
+
+        con.Execute("DELETE FROM alias_referentiel WHERE referentiel = 'proprietaires' AND cible_id = @id",
+            new { id }, tx);
+        con.Execute("DELETE FROM proprietaires WHERE id = @id", new { id }, tx);
+
+        tx.Commit();
+        return liberes;
     }
 
     /// <summary>

@@ -134,6 +134,13 @@ public class Genre
 /// </summary>
 public class Proprietaire
 {
+    /// <summary>
+    /// Le choix « sans propriétaire » d'une liste où <c>null</c> veut déjà dire
+    /// autre chose (« tous » pour le filtre, « pas encore choisi » à l'import).
+    /// Aucun identifiant SQLite ne vaut zéro : il ne peut désigner personne.
+    /// </summary>
+    public const long Aucun = 0;
+
     public long Id { get; set; }
     public string Nom { get; set; } = string.Empty;
 }

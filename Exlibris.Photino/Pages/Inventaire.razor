@@ -1,6 +1,7 @@
 @page "/inventaire"
 @inherits VueBase<InventaireViewModel>
 @using System.Collections.Specialized
+@using Exlibris.Shared.Modeles
 
 @* Deux étapes, deux cartes, dans l'ordre où on les fait — comme le WPF.
    L'import est instantané ; la complétion dure plusieurs minutes. Les réunir
@@ -15,13 +16,40 @@
             <div class="aide">
                 Le fichier produit par le scanner : un ISBN et un rangement par ligne. Chaque ouvrage
                 entre avec son emplacement, mais sans titre — celui-ci viendra de l'étape 2. Un ISBN
-                déjà connu est ignoré : réimporter le même fichier ne duplique rien.
+                déjà connu@(Vm.ProprietairesActifs ? " chez ce propriétaire" : "") est ignoré : réimporter le même
+                fichier ne duplique rien.
             </div>
+            @if (Vm.ProprietairesActifs)
+            {
+                @* « Pour qui ? » AVANT le fichier, sans réponse par défaut : verser
+                   les BD du petit-fils au nom du fils ne se verrait plus ensuite.
+                   Un ISBN déjà connu ne s'écarte que s'il est CHEZ LUI. *@
+                <div class="d-flex align-center gap-3 mt-3">
+                    <MudSelect T="long?" Label="Ce lot appartient à" Value="Vm.ChoixProprietaire"
+                               ValueChanged="v => Vm.ChoixProprietaire = v"
+                               ToStringFunc="NomChoix" Placeholder="Choisir…"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Style="width: 260px">
+                        @foreach (var p in Vm.Proprietaires)
+                        {
+                            <MudSelectItem T="long?" Value="p.Id">@p.Nom</MudSelectItem>
+                        }
+                        <MudSelectItem T="long?" Value="Proprietaire.Aucun"><i>Sans propriétaire</i></MudSelectItem>
+                    </MudSelect>
+                    <span class="aide">
+                        @if (Vm.Proprietaires.Count == 0)
+                        {
+                            <text>Aucun propriétaire pour l'instant : </text>
+                        }
+                        <MudLink Href="parametres">gérer les propriétaires</MudLink>
+                    </span>
+                </div>
+            }
         </div>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="Vm.EnCours"
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="Vm.EnCours || !Vm.ImportPossible"
                    StartIcon="@Icons.Material.Filled.FileOpen"
                    OnClick="() => Vm.ImporterCommand.ExecuteAsync(null)">
-            Choisir un fichier…
+            @(Vm.NomChoixProprietaire is { Length: > 0 } nom && Vm.ChoixProprietaire != Proprietaire.Aucun
+                ? $"Choisir un fichier pour {nom}…" : "Choisir un fichier…")
         </MudButton>
     </MudPaper>
 
@@ -71,6 +99,13 @@
 </div>
 
 @code {
+    private string NomChoix(long? id) => id switch
+    {
+        null => string.Empty,
+        Proprietaire.Aucun => "Sans propriétaire",
+        _ => Vm.Proprietaires.FirstOrDefault(p => p.Id == id)?.Nom ?? string.Empty,
+    };
+
     protected override void OnInitialized()
     {
         // Le journal est une collection, pas une propriété : VueBase ne le voit

@@ -40,6 +40,18 @@ public class NoticeEnLigne
     /// </summary>
     public string CouvertureUrl { get; set; } = string.Empty;
 
+    /// <summary>
+    /// La série, ou vide. Seule Open Library la donne, parmi ses sujets
+    /// (« series:Astérix ») ; le numéro du tome, lui, n'est donné par personne.
+    /// </summary>
+    public string Serie { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Le résumé, ou vide. Seuls Lirevia et Google Books en rendent un : la BnF
+    /// en Dublin Core et Open Library (jscmd=data) n'en portent pas.
+    /// </summary>
+    public string Resume { get; set; } = string.Empty;
+
     /// <summary>« BnF », « Google Books », « Open Library » — dit ce qu'on peut croire.</summary>
     public string Source { get; set; } = string.Empty;
 

@@ -112,15 +112,36 @@ public class LivreDepot(FabriqueConnexion fabrique)
     /// « litterature » manquerait « Littérature » — SQLite ne repliant ni la
     /// casse au-delà de l'ASCII, ni les accents.
     /// </summary>
-    public List<Livre> Rechercher(string? saisie = null, int limite = 500)
+    /// <param name="proprietaireId">
+    /// Le filtre « Propriétaire » de la bibliothèque : <c>null</c> pour tous,
+    /// <see cref="Proprietaire.Aucun"/> pour les ouvrages sans propriétaire,
+    /// sinon un identifiant. Appliqué EN BASE, avant la limite : filtré après
+    /// coup, il ne trierait que les fiches déjà retenues, et un album de Lucas
+    /// rangé au-delà paraîtrait absent — l'erreur même qu'on veut éviter avant
+    /// d'offrir.
+    /// </param>
+    /// <param name="limite">
+    /// TOUTE la bibliothèque par défaut (demande du 12/11/2026). La borne était
+    /// de 500 : au-delà, la liste se taisait sur le reste — 500 BD du fils et du
+    /// petit-fils suffisaient pour qu'un album possédé paraisse absent. La grille
+    /// pagine et la mosaïque affiche par paquets : charger 7 000 lignes se
+    /// compte en millisecondes sur un fichier local.
+    /// </param>
+    public List<Livre> Rechercher(string? saisie = null, long? proprietaireId = null, int limite = LimiteMax)
     {
         using var con = fabrique.Ouvrir();
+
+        const string FiltreProprietaire = """
+            (@proprietaireId IS NULL
+             OR (@proprietaireId = 0 AND l.proprietaire_id IS NULL)
+             OR l.proprietaire_id = @proprietaireId)
+            """;
 
         var propre = (saisie ?? string.Empty).Trim();
         if (propre.Length == 0)
             return con.Query<Livre>(
-                $"{Colonnes} ORDER BY SerieNom, l.numero_tome, l.titre LIMIT @limite",
-                new { limite = Borne(limite) }).AsList();
+                $"{Colonnes} WHERE {FiltreProprietaire} ORDER BY SerieNom, l.numero_tome, l.titre LIMIT @limite",
+                new { proprietaireId, limite = Borne(limite) }).AsList();
 
         // L'ISBN se compare tel quel, une fois normalisé : c'est le chemin de la
         // douchette, et il doit trouver du premier coup.
@@ -129,15 +150,16 @@ public class LivreDepot(FabriqueConnexion fabrique)
 
         return con.Query<Livre>($"""
             {Colonnes}
-            WHERE (@isbn <> '' AND l.isbn = @isbn)
+            WHERE {FiltreProprietaire}
+              AND ((@isbn <> '' AND l.isbn = @isbn)
                OR l.cle_recherche LIKE @motif
                OR COALESCE(s.cle_recherche, '') LIKE @motif
                OR EXISTS (SELECT 1 FROM livre_auteurs la
                           JOIN auteurs a ON a.id = la.auteur_id
-                          WHERE la.livre_id = l.id AND a.cle_recherche LIKE @motif)
+                          WHERE la.livre_id = l.id AND a.cle_recherche LIKE @motif))
             ORDER BY SerieNom, l.numero_tome, l.titre
             LIMIT @limite
-            """, new { isbn, motif, limite = Borne(limite) }).AsList();
+            """, new { isbn, motif, proprietaireId, limite = Borne(limite) }).AsList();
     }
 
     /// <summary>
@@ -155,6 +177,42 @@ public class LivreDepot(FabriqueConnexion fabrique)
 
         using var con = fabrique.Ouvrir();
         return con.Query<Livre>($"{Colonnes} WHERE l.isbn = @propre", new { propre }).AsList();
+    }
+
+    /// <summary>
+    /// La correction EN LOT (12/11/2026) : série, propriétaire, genre et
+    /// « Ma catégorie » posés d'un coup sur plusieurs ouvrages — les cinquante BD du petit-fils
+    /// versées avant que les propriétaires n'existent, ou les Astérix que la
+    /// BnF a rendus sans série.
+    ///
+    /// <c>null</c> veut dire « ne pas changer », et c'est tout l'intérêt : on
+    /// pose le propriétaire sans toucher aux séries, qui diffèrent d'un ouvrage
+    /// à l'autre. <see cref="Proprietaire.Aucun"/> RETIRE le propriétaire.
+    /// Une seule transaction : le lot passe en entier ou pas du tout.
+    /// Renvoie le nombre d'ouvrages modifiés.
+    /// </summary>
+    public int ModifierEnLot(IReadOnlyCollection<long> ids, long? serieId, long? proprietaireId,
+        long? genreId = null, long? classementId = null)
+    {
+        if (ids.Count == 0 || (serieId, proprietaireId, genreId, classementId) is (null, null, null, null)) return 0;
+
+        var affectations = new List<string>();
+        if (serieId is not null) affectations.Add("serie_id = @serieId");
+        if (genreId is not null) affectations.Add("genre_id = @genreId");
+        if (classementId is not null) affectations.Add("classement_id = @classementId");
+        if (proprietaireId is not null)
+            affectations.Add(proprietaireId == Proprietaire.Aucun
+                ? "proprietaire_id = NULL"
+                : "proprietaire_id = @proprietaireId");
+        affectations.Add("modifie_le = datetime('now')");
+
+        using var con = fabrique.Ouvrir();
+        using var tx = con.BeginTransaction();
+        var modifies = con.Execute(
+            $"UPDATE livres SET {string.Join(", ", affectations)} WHERE id IN @ids",
+            new { ids, serieId, proprietaireId, genreId, classementId }, tx);
+        tx.Commit();
+        return modifies;
     }
 
     public bool Supprimer(long id)
@@ -248,5 +306,11 @@ public class LivreDepot(FabriqueConnexion fabrique)
     /// Plafond de lecture. Ici et non seulement dans l'écran : le dépôt est le
     /// dernier endroit traversé par tous les appelants, présents et futurs.
     /// </summary>
-    private static int Borne(int limite) => Math.Clamp(limite, 1, 20_000);
+    /// <summary>
+    /// Le plafond d'une recherche : bien au-delà des quelques milliers
+    /// d'ouvrages visés, il ne protège que d'une base aberrante.
+    /// </summary>
+    public const int LimiteMax = 20_000;
+
+    private static int Borne(int limite) => Math.Clamp(limite, 1, LimiteMax);
 }

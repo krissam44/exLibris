@@ -140,12 +140,20 @@ html, body {
     margin-bottom: 6px;
 }
 
-.formulaire-livre .ligne-isbn,
-.formulaire-livre .ligne-lecture {
+.formulaire-livre .ligne-isbn {
     display: flex;
     align-items: center;
     gap: 12px;
     margin-bottom: 4px;
+}
+
+/* Lu et l'appréciation, poussés au bout de la ligne de l'ISBN. */
+.formulaire-livre .lecture {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: none;
 }
 
 /* Treize chiffres et un millésime n'ont besoin ni l'un ni l'autre de toute la
@@ -264,6 +272,31 @@ html, body {
     max-width: 620px;
 }
 
+/* La liste des propriétaires : quelques noms, elle défile au-delà de six. */
+.page-parametres .liste-proprietaires {
+    max-width: 520px;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 4px;
+}
+
+.page-parametres .ligne-proprietaire {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 2px 8px;
+    min-height: 40px;
+}
+
+.page-parametres .ligne-proprietaire + .ligne-proprietaire {
+    border-top: 1px solid var(--mud-palette-lines-default);
+}
+
+.page-parametres .nom-proprietaire {
+    font-weight: 500;
+}
+
 .page-parametres .doublons {
     flex: 1;
     min-height: 0;
@@ -274,6 +307,17 @@ html, body {
 .page-parametres .doublons .zone-grille {
     flex: 1;
     min-height: 0;
+}
+
+/* ---------- Correction en lot ---------- */
+.formulaire-lot .deux-colonnes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.formulaire-lot .bloc {
+    margin-bottom: 6px;
 }
 
 /* ---------- Formulaire de série ---------- */

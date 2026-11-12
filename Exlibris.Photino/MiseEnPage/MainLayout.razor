@@ -47,7 +47,20 @@
 
     <MudMainContent Class="contenu">
         <div class="pa-4">
-            @Body
+            @* Une erreur d'écran s'affiche ici et part dans erreurs.log, au lieu de
+               figer la fenêtre sans un mot (voir GardeErreurs). *@
+            <GardeErreurs @ref="_garde">
+                <ChildContent>@Body</ChildContent>
+                <ErrorContent Context="erreur">
+                    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-2">
+                        <div><strong>Cette action a échoué.</strong> L'erreur est notée dans « erreurs.log », à côté de votre bibliothèque.</div>
+                        <div class="aide mt-1">@erreur.Message</div>
+                    </MudAlert>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => _garde?.Recover()">
+                        Revenir à l'écran
+                    </MudButton>
+                </ErrorContent>
+            </GardeErreurs>
         </div>
     </MudMainContent>
 
@@ -69,6 +82,8 @@
     ];
 
     private bool _menuReduit;
+
+    private GardeErreurs? _garde;
 
     /// <summary>Nom de la bibliothèque, au centre de la barre — comme dans le WPF.</summary>
     private const string NomBibliotheque = "Ma bibliothèque";
@@ -108,7 +123,12 @@
 
     protected override void OnInitialized() => Navigation.LocationChanged += SurNavigation;
 
-    private void SurNavigation(object? sender, LocationChangedEventArgs e) => StateHasChanged();
+    private void SurNavigation(object? sender, LocationChangedEventArgs e)
+    {
+        // Changer de rubrique efface une erreur affichée : l'écran suivant repart propre.
+        _garde?.Recover();
+        StateHasChanged();
+    }
 
     public void Dispose() => Navigation.LocationChanged -= SurNavigation;
 }

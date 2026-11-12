@@ -43,6 +43,19 @@ public partial class BibliothequeViewModel(
     [ObservableProperty] private bool _proprietairesActifs;
 
     /// <summary>
+    /// Le filtre « Propriétaire » (demande du 12/11/2026) : <c>null</c> pour
+    /// tous, <see cref="Proprietaire.Aucun"/> pour les ouvrages sans
+    /// propriétaire, sinon l'identifiant de celui qu'on regarde. C'est la
+    /// question « Lucas a-t-il déjà cet album ? », posée avant d'offrir.
+    /// </summary>
+    [ObservableProperty] private long? _filtreProprietaire;
+
+    partial void OnFiltreProprietaireChanged(long? value) => Charger();
+
+    /// <summary>Les propriétaires connus, pour la liste du filtre.</summary>
+    public List<Proprietaire> Proprietaires { get; private set; } = [];
+
+    /// <summary>
     /// Les colonnes que l'utilisateur a décochées, retenues d'une session à
     /// l'autre.
     ///
@@ -62,17 +75,37 @@ public partial class BibliothequeViewModel(
     public void Charger()
     {
         ProprietairesActifs = parametres.LireBooleen(ParametreDepot.ProprietairesActifs);
+        Proprietaires = ProprietairesActifs ? referentiels.Proprietaires() : [];
+
+        // Un propriétaire supprimé depuis ne reste pas en filtre : la liste
+        // serait vide sans qu'on comprenne pourquoi.
+        if (FiltreProprietaire is { } choisi && choisi != Proprietaire.Aucun && Proprietaires.All(p => p.Id != choisi))
+        {
+            FiltreProprietaire = null;   // relance Charger, qui recharge sans filtre
+            return;
+        }
+
+        // Le réglage éteint, le filtre ne s'applique plus : il est caché, et un
+        // filtre invisible ferait croire à des ouvrages disparus.
+        var filtre = ProprietairesActifs ? FiltreProprietaire : null;
 
         Livres.Clear();
-        foreach (var livre in livres.Rechercher(Recherche))
+        foreach (var livre in livres.Rechercher(Recherche, filtre))
             Livres.Add(livre);
+
+        var chez = filtre switch
+        {
+            null => string.Empty,
+            Proprietaire.Aucun => " sans propriétaire",
+            _ => $" — {Proprietaires.FirstOrDefault(p => p.Id == filtre)?.Nom}",
+        };
 
         Resume = Livres.Count switch
         {
-            0 when Recherche.Length > 0 => "Aucun ouvrage ne correspond.",
+            0 when Recherche.Length > 0 || filtre is not null => "Aucun ouvrage ne correspond.",
             0                           => "Votre bibliothèque est vide — commencez par un ouvrage.",
-            1                           => "1 ouvrage",
-            _                           => $"{Livres.Count} ouvrages",
+            1                           => $"1 ouvrage{chez}",
+            _                           => $"{Livres.Count} ouvrages{chez}",
         };
     }
 
@@ -81,6 +114,11 @@ public partial class BibliothequeViewModel(
     {
         var formulaire = new LivreFormulaireViewModel(
             referentiels, notices, couvertures, dialogues, ProprietairesActifs);
+
+        // La liste filtrée sur Lucas : l'ouvrage qu'on ajoute est sans doute le
+        // sien. Proposé, et corrigeable dans la fiche.
+        if (ProprietairesActifs && FiltreProprietaire is { } filtre && filtre != Proprietaire.Aucun)
+            formulaire.Proprietaire = Proprietaires.FirstOrDefault(p => p.Id == filtre)?.Nom ?? string.Empty;
 
         if (await EnregistrerAsync(formulaire, "Nouvel ouvrage",
                 "Seul le titre est obligatoire. Ce que vous ne savez pas se remplira plus tard, "

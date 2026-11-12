@@ -1,4 +1,6 @@
+using System.Net;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Exlibris.Shared.Modeles;
 
@@ -166,6 +168,7 @@ public class NoticeEnLigneService(HttpClient client, string adresseLirevia = "")
                 // déploiement des deux côtés.
                 Genre         = Texte(f, "categorie"),
                 CouvertureUrl = Texte(f, "couvertureUrl"),
+                Resume        = TexteBrut(Texte(f, "resume")),
                 Source        = Texte(f, "source") is { Length: > 0 } s ? s : "Lirevia",
             };
 
@@ -333,6 +336,7 @@ public class NoticeEnLigneService(HttpClient client, string adresseLirevia = "")
 
             notice.Auteurs = Concatener(info, "authors");
             notice.Genre = PremiereGenre(Concatener(info, "genres"));
+            notice.Resume = TexteBrut(Texte(info, "description"));
 
             if (info.TryGetProperty("imageLinks", out var images))
                 notice.CouvertureUrl = HauteResolution(Texte(images, "thumbnail"));
@@ -369,7 +373,16 @@ public class NoticeEnLigneService(HttpClient client, string adresseLirevia = "")
 
             notice.Auteurs = NomsDeObjets(fiche, "authors");
             notice.Editeur = NomsDeObjets(fiche, "publishers");
-            notice.Genre = PremiereGenre(NomsDeObjets(fiche, "subjects"));
+
+            // Les sujets mêlent des genres (« Graphic novels ») et des
+            // étiquettes PRÉFIXÉES (« series:Astérix »). Le premier sujet étant
+            // souvent la série, il devenait le genre : « series:Astérix » dans
+            // la liste des genres (constaté le 12/11/2026). La série part donc
+            // dans son champ, et le genre se cherche parmi les sujets ordinaires.
+            var sujets = NomsDeObjets(fiche, "subjects")
+                .Split(SeparateurSujets, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            notice.Serie = sujets.Select(SerieDuSujet).FirstOrDefault(s => s.Length > 0) ?? string.Empty;
+            notice.Genre = PremiereGenre(string.Join(", ", sujets.Where(s => !EstEtiquette(s))));
 
             // L'objet « cover » de la réponse, et NON une adresse fabriquée à
             // partir de l'ISBN. Mesuré le 29/08/2026 : covers.openlibrary.org
@@ -396,6 +409,47 @@ public class NoticeEnLigneService(HttpClient client, string adresseLirevia = "")
         parent.TryGetProperty(nom, out var valeur) && valeur.ValueKind == JsonValueKind.String
             ? valeur.GetString() ?? string.Empty
             : string.Empty;
+
+    /// <summary>
+    /// NomsDeObjets recolle sur « , » ; certains sujets en contiennent eux-mêmes
+    /// (« Comic books, strips »), mais seul le premier membre sert au genre et
+    /// les étiquettes n'en portent pas : le découpage suffit.
+    /// </summary>
+    private static readonly string[] SeparateurSujets = [", "];
+
+    /// <summary>
+    /// « series:Astérix », « place:corsica », « nyt:graphic-books » : un mot
+    /// en minuscules collé à deux-points. Ce sont des étiquettes d'Open
+    /// Library, pas des genres. « Spanish: Grades 2-3 », avec son espace et sa
+    /// majuscule, n'en est pas une.
+    /// </summary>
+    internal static bool EstEtiquette(string sujet) =>
+        Regex.IsMatch(sujet, @"^[a-z_]+:\S");
+
+    /// <summary>« series:Astérix » → « Astérix » ; vide pour tout autre sujet.</summary>
+    internal static string SerieDuSujet(string sujet) =>
+        sujet.StartsWith("series:", StringComparison.OrdinalIgnoreCase) ? sujet["series:".Length..].Trim() : string.Empty;
+
+    /// <summary>
+    /// Un résumé débarrassé de son balisage. Google sert parfois sa
+    /// « description » en HTML (« &lt;p&gt;Les Gaulois…&lt;br&gt; ») : affiché tel
+    /// quel dans un champ texte, le lecteur verrait les chevrons. Les fins de
+    /// paragraphe et les sauts de ligne deviennent des retours à la ligne, le
+    /// reste des balises disparaît, les entités (« &amp;eacute; ») sont décodées.
+    /// </summary>
+    internal static string TexteBrut(string brut)
+    {
+        if (string.IsNullOrWhiteSpace(brut)) return string.Empty;
+
+        var texte = Regex.Replace(brut, @"<\s*(br|/p)\s*/?\s*>", "\n", RegexOptions.IgnoreCase);
+        texte = Regex.Replace(texte, "<[^>]+>", string.Empty);
+        texte = WebUtility.HtmlDecode(texte).Replace("\r\n", "\n");
+
+        // Trois lignes vides de suite ne disent rien de plus qu'une seule.
+        texte = Regex.Replace(texte, @"[ \t]+\n", "\n");
+        texte = Regex.Replace(texte, @"\n{3,}", "\n\n");
+        return texte.Trim();
+    }
 
     /// <summary>Un tableau de chaînes, recollé : « Van Hamme, Rosiński ».</summary>
     private static string Concatener(JsonElement parent, string nom) =>

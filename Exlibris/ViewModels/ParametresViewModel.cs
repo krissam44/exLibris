@@ -36,6 +36,95 @@ public partial class ParametresViewModel(
         parametres.EcrireBooleen(ParametreDepot.ProprietairesActifs, value);
 
     // -----------------------------------------------------------------------------------------------------------------
+    //  Propriétaires (demande du 12/11/2026)
+    //
+    //  Créés ICI, avant l'import : on choisit « Lucas » au moment de verser
+    //  l'inventaire de ses BD, il doit donc déjà exister. La saisie libre de la
+    //  fiche continue d'en créer à la volée, comme pour les autres listes.
+    // -----------------------------------------------------------------------------------------------------------------
+
+    /// <summary>Les propriétaires, avec le nombre d'ouvrages de chacun.</summary>
+    public ObservableCollection<EntreeReferentiel> ListeProprietaires { get; } = [];
+
+    [ObservableProperty] private string _nouveauProprietaire = string.Empty;
+    [ObservableProperty] private string _messageProprietaires = string.Empty;
+
+    private void ChargerProprietaires()
+    {
+        ListeProprietaires.Clear();
+        foreach (var p in referentiels.Lister("proprietaires"))
+            ListeProprietaires.Add(p);
+
+        // La grille des doublons montre peut-être les propriétaires : elle suit.
+        if (ReferentielChoisi.Table == "proprietaires") ChargerEntrees();
+    }
+
+    [RelayCommand]
+    private void AjouterProprietaire()
+    {
+        var nom = NouveauProprietaire.Trim();
+        if (nom.Length == 0)
+        {
+            MessageProprietaires = "Saisissez un nom.";
+            return;
+        }
+
+        var (_, cree) = referentiels.CreerProprietaire(nom);
+        NouveauProprietaire = string.Empty;
+        ChargerProprietaires();
+
+        // « lucas » tapé alors que « Lucas » existe : on le dit, plutôt que
+        // d'annoncer un ajout qui n'a pas eu lieu.
+        MessageProprietaires = cree ? $"« {nom} » ajouté." : $"« {nom} » existait déjà.";
+    }
+
+    /// <summary>
+    /// Renomme un propriétaire ; <c>false</c> si le nom est vide ou déjà pris
+    /// par un autre — l'écran garde alors la saisie ouverte.
+    /// </summary>
+    public bool RenommerProprietaire(EntreeReferentiel proprietaire, string nom)
+    {
+        if (string.IsNullOrWhiteSpace(nom))
+        {
+            MessageProprietaires = "Le nom ne peut pas être vide.";
+            return false;
+        }
+
+        if (!referentiels.RenommerProprietaire(proprietaire.Id, nom))
+        {
+            MessageProprietaires = $"« {nom.Trim()} » existe déjà. Pour réunir les deux, "
+                                 + "passez par « Réunir les doublons », plus bas.";
+            return false;
+        }
+
+        ChargerProprietaires();
+        MessageProprietaires = $"« {proprietaire.Nom} » renommé en « {nom.Trim()} ».";
+        return true;
+    }
+
+    /// <summary>
+    /// Supprime un propriétaire après confirmation. Ses ouvrages restent, sans
+    /// propriétaire : la question le dit, avec leur nombre.
+    /// </summary>
+    [RelayCommand]
+    private async Task SupprimerProprietaireAsync(EntreeReferentiel proprietaire)
+    {
+        var question = proprietaire.NbOuvrages == 0
+            ? $"« {proprietaire.Nom} » ne possède aucun ouvrage."
+            : $"Ses {proprietaire.NbOuvrages} ouvrage{(proprietaire.NbOuvrages > 1 ? "s restent" : " reste")} dans la "
+              + "bibliothèque, mais sans propriétaire.";
+
+        if (!await dialogues.ConfirmerAsync($"Supprimer « {proprietaire.Nom} » ?", question, "Supprimer"))
+            return;
+
+        var liberes = referentiels.SupprimerProprietaire(proprietaire.Id);
+        ChargerProprietaires();
+        MessageProprietaires = liberes == 0
+            ? $"« {proprietaire.Nom} » supprimé."
+            : $"« {proprietaire.Nom} » supprimé — {liberes} ouvrage{(liberes > 1 ? "s" : "")} sans propriétaire.";
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
     //  Référentiels
     // -----------------------------------------------------------------------------------------------------------------
 
@@ -63,6 +152,8 @@ public partial class ParametresViewModel(
     public void Charger()
     {
         ProprietairesActifs = parametres.LireBooleen(ParametreDepot.ProprietairesActifs);
+        MessageProprietaires = string.Empty;
+        ChargerProprietaires();
         ChargerEntrees();
     }
 

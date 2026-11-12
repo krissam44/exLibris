@@ -45,6 +45,8 @@ public sealed class DialogueService(IDialogService dialogues, Fenetre fenetres, 
             LivreFormulaireViewModel => (typeof(Formulaires.LivreFormulaire), MaxWidth.Medium),
             // Trois champs sur 400 px dans le WPF.
             SerieFormulaireViewModel => (typeof(Formulaires.SerieFormulaire), MaxWidth.Small),
+            // La correction en lot de la Bibliothèque : deux champs.
+            Formulaires.ModificationEnLotViewModel => (typeof(Formulaires.ModificationEnLot), MaxWidth.Small),
             _ => throw new ArgumentException(
                 $"Aucune vue Razor déclarée pour {formulaire.GetType().Name}.", nameof(formulaire)),
         };

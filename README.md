@@ -29,20 +29,26 @@ d'ISBN).
 **La bibliothèque**
 - Liste triable et filtrable (titre, auteurs, éditeur, genre, catégorie,
   rangement, année, lu…), colonnes à la carte, recherche instantanée.
+- **Filtre par propriétaire** : ne montrer que les ouvrages de l'un — savoir
+  ce qu'il possède déjà avant de lui offrir un album.
 - **Affichage en vignettes** : les couvertures en mosaïque, avec une barre
   A…Z / 0-9 pour aller directement à une lettre.
 - Une petite couverture en tête de ligne, si on le souhaite.
+- **Correction en lot** : cocher plusieurs ouvrages et leur donner d'un coup
+  une série et/ou un propriétaire.
 
 **La fiche d'un ouvrage**
 - **Recherche par ISBN** dans quatre sources, dans cet ordre : un serveur
   Lirevia (facultatif), la **BnF**, **Google Books**, **Open Library** —
-  titre, auteurs, éditeur, année, résumé et couverture remplis d'un coup.
+  titre, auteurs, éditeur, année et couverture remplis d'un coup, plus le
+  résumé quand la source en donne un (Lirevia, Google Books) et la série
+  quand Open Library la connaît.
 - Saisie manuelle rapide pour les ouvrages sans ISBN, avec autocomplétion des
   auteurs, séries et éditeurs.
 - Couverture récupérée en ligne, ou prise d'une image sur le disque (photo,
   scan).
-- Série et numéro de tome, rangement, lu / date de lecture, appréciation,
-  commentaire, propriétaire (facultatif).
+- Série et numéro de tome, rangement, lu, appréciation, résumé, commentaire,
+  propriétaire (facultatif).
 
 **Les séries**
 - Pour chaque série : tomes possédés, nombre total, **tomes manquants**,
@@ -50,12 +56,15 @@ d'ISBN).
 
 **L'inventaire**
 - Verser une liste d'ISBN (fichier CSV, une colonne, avec le rangement en
-  option) : chaque ligne devient une fiche.
+  option) : chaque ligne devient une fiche. Avec les propriétaires activés,
+  l'import demande **à qui appartient le lot** ; un album déjà présent chez un
+  autre propriétaire a alors sa propre fiche.
 - **Compléter les fiches par lot** en ligne, avec un rythme qui ménage les
   services consultés.
 
 **Les réglages**
-- Distinguer ou non le propriétaire de chaque ouvrage.
+- Distinguer ou non le propriétaire de chaque ouvrage, et **gérer la liste
+  des propriétaires** (ajouter, renommer, supprimer).
 - **Réunir les doublons** d'éditeurs, d'auteurs, de séries, de genres, de
   catégories ou de propriétaires saisis de plusieurs façons
   (« Gallimard » et « Éditions Gallimard »).
