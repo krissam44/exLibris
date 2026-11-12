@@ -5,11 +5,12 @@
 ;  Ne le compilez pas seul : il irait chercher un dossier de publication
 ;  peut-être périmé.
 ;
-;  ⚠️ C'est un installateur DISTINCT de celui du WPF (Exlibris.iss), choisi
-;  le 04/10/2026 : les deux versions s'installent CÔTE À CÔTE et partagent
-;  la même bibliothèque (%LOCALAPPDATA%\Exlibris). La bascule viendra quand
-;  la version Photino aura été validée à l'usage — ce jour-là, reprendre
-;  l'AppId du WPF ici pour que l'installation le remplace.
+;  La version WPF a été retirée du dépôt le 12/11/2026 ; son installateur
+;  (Exlibris.iss) avec. L'AppId ci-dessous reste CELUI DE PHOTINO, et non
+;  celui du WPF : le changer ferait poser une seconde installation à côté de
+;  celles déjà faites au lieu de les mettre à jour. Un poste qui a encore
+;  l'ancien Ex-libris WPF le désinstalle par « Désinstaller Ex-libris » ;
+;  la bibliothèque (%LOCALAPPDATA%\Exlibris) n'en est pas touchée.
 ;
 ;  Inno Setup s'installe une fois :
 ;      winget install JRSoftware.InnoSetup
@@ -48,7 +49,7 @@ Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
 
-SetupIconFile=..\Exlibris\Assets\exlibris.ico
+SetupIconFile=..\Exlibris.Photino\Assets\exlibris.ico
 UninstallDisplayIcon={app}\{#Executable}
 
 ArchitecturesAllowed=x64compatible

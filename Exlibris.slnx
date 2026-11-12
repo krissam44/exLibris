@@ -4,5 +4,4 @@
   <Project Path="Exlibris.Scanner/Exlibris.Scanner.csproj" />
   <Project Path="Exlibris.Shared/Exlibris.Shared.csproj" />
   <Project Path="Exlibris.Tests/Exlibris.Tests.csproj" />
-  <Project Path="Exlibris/Exlibris.csproj" />
 </Solution>

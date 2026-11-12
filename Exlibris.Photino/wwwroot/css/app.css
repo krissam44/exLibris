@@ -140,12 +140,20 @@ html, body {
     margin-bottom: 6px;
 }
 
-.formulaire-livre .ligne-isbn,
-.formulaire-livre .ligne-lecture {
+.formulaire-livre .ligne-isbn {
     display: flex;
     align-items: center;
     gap: 12px;
     margin-bottom: 4px;
+}
+
+/* Lu et l'appréciation, poussés au bout de la ligne de l'ISBN. */
+.formulaire-livre .lecture {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: none;
 }
 
 /* Treize chiffres et un millésime n'ont besoin ni l'un ni l'autre de toute la
@@ -264,6 +272,31 @@ html, body {
     max-width: 620px;
 }
 
+/* La liste des propriétaires : quelques noms, elle défile au-delà de six. */
+.page-parametres .liste-proprietaires {
+    max-width: 520px;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 4px;
+}
+
+.page-parametres .ligne-proprietaire {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 2px 8px;
+    min-height: 40px;
+}
+
+.page-parametres .ligne-proprietaire + .ligne-proprietaire {
+    border-top: 1px solid var(--mud-palette-lines-default);
+}
+
+.page-parametres .nom-proprietaire {
+    font-weight: 500;
+}
+
 .page-parametres .doublons {
     flex: 1;
     min-height: 0;
@@ -274,6 +307,17 @@ html, body {
 .page-parametres .doublons .zone-grille {
     flex: 1;
     min-height: 0;
+}
+
+/* ---------- Correction en lot ---------- */
+.formulaire-lot .deux-colonnes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.formulaire-lot .bloc {
+    margin-bottom: 6px;
 }
 
 /* ---------- Formulaire de série ---------- */
@@ -319,6 +363,100 @@ html, body {
 .chiffre .valeur {
     font-size: 26px;
     font-weight: 600;
+}
+
+/* ---------- Accueil ---------- */
+.page-accueil {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.rangee-chiffres {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+.chiffre .part {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--mud-palette-text-secondary);
+    margin-left: 6px;
+}
+
+.rangee-chiffres.petits { grid-template-columns: repeat(2, 1fr); }
+.rangee-chiffres.petits .valeur { font-size: 20px; }
+
+.entete-carte {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.entete-carte .mud-input-control { margin-left: auto; flex: none; }
+
+.rangee-proprietaires {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.tuile-proprietaire {
+    /* Colonne explicite : dans un <button>, nom, nombre et légende se
+       rangeaient sur une seule ligne. */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 160px;
+    padding: 10px 14px;
+    text-align: left;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 6px;
+    background: var(--mud-palette-surface);
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    transition: box-shadow .15s, border-color .15s;
+}
+
+.tuile-proprietaire:hover { border-color: var(--mud-palette-primary); box-shadow: 0 2px 8px rgba(0, 0, 0, .12); }
+.tuile-proprietaire .nom { font-weight: 600; color: var(--mud-palette-primary); }
+.tuile-proprietaire .valeur { font-size: 24px; font-weight: 600; }
+
+.deux-cartes {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 12px;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .deux-cartes { grid-template-columns: 1fr; }
+}
+
+.liste-idees {
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.liste-idees .idee {
+    display: grid;
+    grid-template-columns: minmax(140px, 1fr) 2fr auto;
+    gap: 12px;
+    align-items: baseline;
+    padding: 6px 0;
+}
+
+.liste-idees .idee + .idee { border-top: 1px solid var(--mud-palette-lines-default); }
+.liste-idees .serie { font-weight: 600; }
+.liste-idees .manquants { color: var(--mud-palette-primary); }
+
+.rangee-derniers {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
 }
 
 /* ---------- Bibliothèque : vignettes (comme la borne de Lirevia) ---------- */

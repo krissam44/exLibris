@@ -19,7 +19,9 @@ namespace Exlibris.ViewModels;
 public partial class InventaireViewModel(
     InventaireDepot inventaire,
     Func<CompletionParLot> completion,
-    Services.IDialogueService dialogues) : ObservableObject
+    Services.IDialogueService dialogues,
+    ParametreDepot parametres,
+    ReferentielDepot referentiels) : ObservableObject
 {
     /// <summary>Les lignes du traitement en cours, la dernière en haut.</summary>
     public ObservableCollection<string> Journal { get; } = [];
@@ -36,9 +38,52 @@ public partial class InventaireViewModel(
 
     private CancellationTokenSource? _annulation;
 
+    // ----- À qui appartient le lot (demande du 12/11/2026)
+
+    /// <summary>Le réglage « Distinguer le propriétaire », relu à chaque visite.</summary>
+    [ObservableProperty] private bool _proprietairesActifs;
+
+    public List<Proprietaire> Proprietaires { get; private set; } = [];
+
+    /// <summary>
+    /// Le propriétaire du prochain lot : son identifiant,
+    /// <see cref="Proprietaire.Aucun"/> pour « sans propriétaire », ou
+    /// <c>null</c> tant qu'on n'a pas choisi.
+    ///
+    /// <b>Aucun choix par défaut, et c'est la protection.</b> Verser les BD du
+    /// petit-fils au nom du fils ne se remarquerait qu'en cherchant un album
+    /// qu'on croit chez l'un et qu'on trouve chez l'autre. L'import attend donc
+    /// une réponse explicite ; ensuite le choix reste, pour verser plusieurs
+    /// étagères du même à la suite, et le bouton le rappelle à chaque fois.
+    /// </summary>
+    [ObservableProperty] private long? _choixProprietaire;
+
+    /// <summary>Faux tant qu'il manque la réponse à « pour qui ? ».</summary>
+    public bool ImportPossible => !ProprietairesActifs || ChoixProprietaire is not null;
+
+    /// <summary>« Lucas », « sans propriétaire », ou vide quand la notion est éteinte.</summary>
+    public string NomChoixProprietaire => !ProprietairesActifs || ChoixProprietaire is null ? string.Empty
+        : ChoixProprietaire == Proprietaire.Aucun ? "sans propriétaire"
+        : Proprietaires.FirstOrDefault(p => p.Id == ChoixProprietaire)?.Nom ?? string.Empty;
+
+    partial void OnChoixProprietaireChanged(long? value)
+    {
+        OnPropertyChanged(nameof(ImportPossible));
+        OnPropertyChanged(nameof(NomChoixProprietaire));
+    }
+
+    partial void OnProprietairesActifsChanged(bool value) => OnPropertyChanged(nameof(ImportPossible));
+
     public void Charger()
     {
         EnAttente = inventaire.NombreACompleter();
+
+        ProprietairesActifs = parametres.LireBooleen(ParametreDepot.ProprietairesActifs);
+        Proprietaires = referentiels.Proprietaires();
+
+        // Un propriétaire supprimé depuis, dans Paramètres, ne reste pas choisi.
+        if (ChoixProprietaire is { } choix && choix != Proprietaire.Aucun && Proprietaires.All(p => p.Id != choix))
+            ChoixProprietaire = null;
 
         if (Resume.Length == 0)
             Resume = EnAttente > 0
@@ -53,6 +98,12 @@ public partial class InventaireViewModel(
     [RelayCommand]
     private async Task ImporterAsync()
     {
+        if (!ImportPossible)
+        {
+            Resume = "Choisissez d'abord à qui appartient ce lot.";
+            return;
+        }
+
         var chemin = await dialogues.ChoisirFichierAsync(
             "Choisir un inventaire",
             "Inventaire scanné (*.csv)|*.csv|Tous les fichiers|*.*");
@@ -85,14 +136,23 @@ public partial class InventaireViewModel(
             return;
         }
 
-        var bilan = inventaire.Importer(lignes);
+        var proprietaireId = ProprietairesActifs && ChoixProprietaire is { } id && id != Proprietaire.Aucun
+            ? id
+            : (long?)null;
+
+        var bilan = inventaire.Importer(lignes, proprietaireId);
         EnAttente = inventaire.NombreACompleter();
+
+        // « pour Lucas » : le message redit à qui le lot a été attribué, seul
+        // moment où une erreur de choix se rattrape encore sans chercher.
+        var pour = proprietaireId is null ? string.Empty : $" pour {NomChoixProprietaire}";
+        var chez = proprietaireId is null ? "déjà présent" : $"déjà chez {NomChoixProprietaire}";
 
         Journal.Clear();
         Resume = bilan.DejaPresents == 0
-            ? $"{bilan.Crees} ouvrage{(bilan.Crees > 1 ? "s ajoutés" : " ajouté")}."
-            : $"{bilan.Crees} ajouté{(bilan.Crees > 1 ? "s" : "")}, "
-              + $"{bilan.DejaPresents} déjà présent{(bilan.DejaPresents > 1 ? "s" : "")} "
+            ? $"{bilan.Crees} ouvrage{(bilan.Crees > 1 ? "s ajoutés" : " ajouté")}{pour}."
+            : $"{bilan.Crees} ajouté{(bilan.Crees > 1 ? "s" : "")}{pour}, "
+              + $"{bilan.DejaPresents} {chez}{(proprietaireId is null && bilan.DejaPresents > 1 ? "s" : "")} "
               + "— rien n'a été dupliqué.";
     }
 

@@ -15,6 +15,10 @@
         <div class="ligne-isbn">
             @Champ("ISBN", Vm.Isbn, "champ-isbn")
             @Champ("Année", Vm.Annee?.ToString(), "champ-annee")
+            <div class="lecture">
+                <div style="width: 90px">@Champ("Lu", Vm.Lu ? "Oui" : "Non")</div>
+                <div style="width: 150px">@Champ("Appréciation", Vm.Appreciation is { } n ? new string('★', n) + new string('☆', 5 - n) : "—")</div>
+            </div>
         </div>
 
         <div class="bloc">@Champ("Titre", Vm.Titre)</div>
@@ -39,10 +43,10 @@
             @Champ("Tome", Vm.NumeroTome?.ToString())
         </div>
 
-        <div class="ligne-lecture">
-            <div style="width: 120px">@Champ("Lu", Vm.Lu ? "Oui" : "Non")</div>
-            <div style="width: 160px">@Champ("Appréciation", Vm.Appreciation is { } n ? new string('★', n) + new string('☆', 5 - n) : "—")</div>
-        </div>
+        @* Le résumé peut dépasser quatre lignes : il défile dans son cadre. *@
+        <MudTextField T="string" Label="Résumé" Value="@(string.IsNullOrWhiteSpace(Vm.Resume) ? "—" : Vm.Resume)"
+                      ReadOnly="true" Lines="4" Class="bloc"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" />
 
         <MudTextField T="string" Label="Commentaire" Value="@Vm.Commentaire" ReadOnly="true" Lines="3"
                       Variant="Variant.Outlined" Margin="Margin.Dense" />

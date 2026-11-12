@@ -14,8 +14,8 @@
     Sous Linux, sur le poste : extraire l'archive dans un dossier, puis
         bash installer.sh
 
-    Pendant de publier.ps1 (WPF), qui reste en place : les deux versions
-    s'installent côte à côte (voir installateur\ExlibrisPhotino.iss).
+    Seul script de publication de l'application de bureau depuis le retrait
+    de la version WPF (et de publier.ps1) le 12/11/2026.
 #>
 
 [CmdletBinding()]
@@ -47,7 +47,7 @@ if ($Release) {
     }
 }
 
-# --- Les tests d'abord : même règle que publier.ps1.
+# --- Les tests d'abord : un défaut trouvé ici évite une tournée de réinstallations.
 Write-Host "`n=== Tests ===" -ForegroundColor Cyan
 dotnet test "$racine\Exlibris.Tests\Exlibris.Tests.csproj" --nologo -v q
 if ($LASTEXITCODE -ne 0) { throw "Des tests échouent : publication annulée." }
@@ -83,7 +83,7 @@ foreach ($rid in 'win-x64', 'linux-x64') {
         if (Test-Path $reglages) { throw "appsettings.Local.json est dans la publication $rid : Release annulée (clé Syncfusion)." }
     }
     elseif (-not (Test-Path $reglages)) {
-        # Même contrôle que publier.ps1 : sans ce fichier, ni licence Syncfusion
+        # Sans ce fichier, ni licence Syncfusion
         # (bannière d'évaluation) ni accès à Lirevia — et rien ne le signale.
         Write-Warning "appsettings.Local.json absent de la publication $rid : ni licence Syncfusion, ni accès à Lirevia."
     }
@@ -101,7 +101,7 @@ Write-Host "  $archive ($([math]::Round((Get-Item $archive).Length / 1MB, 1)) Mo
 
 if ($SansSetup) { Write-Host "`nTerminé (sans installateur)." -ForegroundColor Green; return }
 
-# --- Installateur Windows (mêmes emplacements possibles d'Inno Setup que publier.ps1)
+# --- Installateur Windows (Inno Setup peut être à trois endroits, selon son installation)
 $iscc = @(
     "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
     "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"

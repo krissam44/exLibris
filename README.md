@@ -26,23 +26,37 @@ d'ISBN).
 
 ## Ce qu'il sait faire
 
+**L'accueil**
+- Les chiffres de la bibliothèque, la part de chaque propriétaire (un clic
+  ouvre ses ouvrages), les derniers ajouts en couvertures et les fiches à
+  reprendre.
+- **Idées cadeaux** : pour chacun, les tomes qui lui manquent dans les séries
+  qu'il a commencées — trous intérieurs, et la fin quand le nombre de tomes de
+  la série est connu.
+
 **La bibliothèque**
 - Liste triable et filtrable (titre, auteurs, éditeur, genre, catégorie,
   rangement, année, lu…), colonnes à la carte, recherche instantanée.
+- **Filtre par propriétaire** : ne montrer que les ouvrages de l'un — savoir
+  ce qu'il possède déjà avant de lui offrir un album.
 - **Affichage en vignettes** : les couvertures en mosaïque, avec une barre
   A…Z / 0-9 pour aller directement à une lettre.
 - Une petite couverture en tête de ligne, si on le souhaite.
+- **Correction en lot** : cocher plusieurs ouvrages et leur donner d'un coup
+  une série et/ou un propriétaire.
 
 **La fiche d'un ouvrage**
 - **Recherche par ISBN** dans quatre sources, dans cet ordre : un serveur
   Lirevia (facultatif), la **BnF**, **Google Books**, **Open Library** —
-  titre, auteurs, éditeur, année, résumé et couverture remplis d'un coup.
+  titre, auteurs, éditeur, année et couverture remplis d'un coup, plus le
+  résumé quand la source en donne un (Lirevia, Google Books) et la série
+  quand Open Library la connaît.
 - Saisie manuelle rapide pour les ouvrages sans ISBN, avec autocomplétion des
   auteurs, séries et éditeurs.
 - Couverture récupérée en ligne, ou prise d'une image sur le disque (photo,
   scan).
-- Série et numéro de tome, rangement, lu / date de lecture, appréciation,
-  commentaire, propriétaire (facultatif).
+- Série et numéro de tome, rangement, lu, appréciation, résumé, commentaire,
+  propriétaire (facultatif).
 
 **Les séries**
 - Pour chaque série : tomes possédés, nombre total, **tomes manquants**,
@@ -50,25 +64,27 @@ d'ISBN).
 
 **L'inventaire**
 - Verser une liste d'ISBN (fichier CSV, une colonne, avec le rangement en
-  option) : chaque ligne devient une fiche.
+  option) : chaque ligne devient une fiche. Avec les propriétaires activés,
+  l'import demande **à qui appartient le lot** ; un album déjà présent chez un
+  autre propriétaire a alors sa propre fiche.
 - **Compléter les fiches par lot** en ligne, avec un rythme qui ménage les
   services consultés.
 
 **Les réglages**
-- Distinguer ou non le propriétaire de chaque ouvrage.
+- Distinguer ou non le propriétaire de chaque ouvrage, et **gérer la liste
+  des propriétaires** (ajouter, renommer, supprimer).
 - **Réunir les doublons** d'éditeurs, d'auteurs, de séries, de genres, de
   catégories ou de propriétaires saisis de plusieurs façons
   (« Gallimard » et « Éditions Gallimard »).
 
-## Les trois applications du dépôt
+## Les deux applications du dépôt
 
 | Projet | Plateforme | Rôle |
 |---|---|---|
 | `Exlibris.Photino` | Windows, Linux | **L'application principale**, en Blazor dans une fenêtre de bureau (PhotinoX.Blazor) |
-| `Exlibris` | Windows | La première version, en WPF ; même base, mêmes règles |
 | `Exlibris.Scanner` | Android | Scanner de codes-barres pour l'inventaire : on vise les codes-barres en rayon, il produit le fichier CSV (à envoyer par courriel, cloud ou câble) à verser dans l'inventaire |
 
-Les trois partagent `Exlibris.Data` (accès SQLite, sources en ligne) et
+Les deux partagent `Exlibris.Data` (accès SQLite, sources en ligne) et
 `Exlibris.Shared` (modèle, règles), testés par `Exlibris.Tests`.
 
 ## Installer
@@ -122,7 +138,7 @@ dotnet run --project Exlibris.Photino/Exlibris.Photino.csproj
 pour les particuliers et petites structures avec la
 [Community License](https://www.syncfusion.com/products/communitylicense).
 Sans clé, l'application fonctionne, avec une bannière d'évaluation. La clé se
-met dans `Exlibris/appsettings.Local.json` (jamais versionné) :
+met dans `Exlibris.Photino/appsettings.Local.json` (jamais versionné) :
 
 ```json
 {

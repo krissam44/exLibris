@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -25,14 +25,13 @@
     <ProjectReference Include="..\Exlibris.Shared\Exlibris.Shared.csproj" />
   </ItemGroup>
 
-  <!-- Le formulaire d'ouvrage, repris PAR LIEN comme dans Exlibris.Photino :
-       il n'a plus aucune dépendance WPF depuis le passage des dialogues en
-       asynchrone, donc il s'éprouve ici sans projet d'interface. C'est par lui
-       que passait la perte des champs non affichés (voir LivreFormulaireTests). -->
+  <!-- Le formulaire d'ouvrage, repris PAR LIEN depuis Exlibris.Photino : il
+       s'éprouve ici sans projet d'interface. C'est par lui que passait la perte
+       des champs non affichés (voir LivreFormulaireTests). -->
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-    <Compile Include="..\Exlibris\ViewModels\LivreFormulaireViewModel.cs" Link="Liens\LivreFormulaireViewModel.cs" />
-    <Compile Include="..\Exlibris\Services\IDialogueService.cs" Link="Liens\IDialogueService.cs" />
+    <Compile Include="..\Exlibris.Photino\ViewModels\LivreFormulaireViewModel.cs" Link="Liens\LivreFormulaireViewModel.cs" />
+    <Compile Include="..\Exlibris.Photino\Services\IDialogueService.cs" Link="Liens\IDialogueService.cs" />
   </ItemGroup>
 
 </Project>

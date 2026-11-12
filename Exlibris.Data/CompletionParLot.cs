@@ -136,7 +136,11 @@ public class CompletionParLot(
         if (livre.GenreId is null && notice.Genre.Length > 0)
             livre.GenreId = referentiels.ResoudreGenre(notice.Genre);
 
+        if (livre.SerieId is null && notice.Serie.Length > 0)
+            livre.SerieId = referentiels.ResoudreSerie(notice.Serie);
+
         livre.Annee ??= notice.Annee;
+        livre.Resume = NoticeEnLigne.Completer(livre.Resume, notice.Resume).Valeur;
 
         // La provenance, pour la même raison que dans Lirevia : savoir d'où
         // vient une fiche dit ce qu'on peut en croire.

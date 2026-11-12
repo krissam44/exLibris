@@ -17,6 +17,23 @@
                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                       Style="max-width: 420px" />
 
+        @* Le filtre par propriétaire, à côté de la recherche : « Lucas a-t-il
+           déjà Astérix en Corse ? » se pose avec les deux ensemble. Appliqué en
+           base (LivreDepot.Rechercher), il vaut aussi pour les vignettes. *@
+        @if (Vm.ProprietairesActifs)
+        {
+            <MudSelect T="long?" Label="Propriétaire" Value="Vm.FiltreProprietaire"
+                       ValueChanged="v => Vm.FiltreProprietaire = v" ToStringFunc="NomFiltre"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Style="width: 220px; flex: none">
+                <MudSelectItem T="long?" Value="null">Tous</MudSelectItem>
+                @foreach (var p in Vm.Proprietaires)
+                {
+                    <MudSelectItem T="long?" Value="p.Id">@p.Nom</MudSelectItem>
+                }
+                <MudSelectItem T="long?" Value="Proprietaire.Aucun"><i>Sans propriétaire</i></MudSelectItem>
+            </MudSelect>
+        }
+
         <MudSpacer />
 
         @* Liste ou vignettes : le choix est mémorisé (paramètres de la base). *@
@@ -53,6 +70,15 @@
 
         @* Modifier et Supprimer se grisent sans sélection : le bouton dit ce qui
            est possible, plutôt que d'échouer après le clic. *@
+        @* La correction en lot n'apparaît qu'avec deux cases cochées ou plus :
+           pour une seule, « Modifier » ouvre la fiche entière. *@
+        @if (!_vignettes && _selectionnes.Count > 1)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.EditNote"
+                       OnClick="ModifierEnLot">
+                Modifier la sélection (@_selectionnes.Count)
+            </MudButton>
+        }
         <MudButton Variant="Variant.Filled" Color="Color.Default"
                    Disabled="Vm.Selection is null" OnClick="() => Vm.ModifierCommand.ExecuteAsync(null)">
             Modifier
@@ -84,8 +110,17 @@
                         OnRecordDoubleClick="SurDoubleClic" />
             <GridPageSettings PageSize="50" PageCount="7" />
             <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Excel" />
-            <GridSelectionSettings Mode="Syncfusion.Blazor.Grids.SelectionMode.Row" Type="SelectionType.Single" />
+            @* Sélection MULTIPLE par cases (correction en lot, 12/11/2026). Un
+               simple clic sur une ligne ne coche qu'elle : Modifier, Supprimer
+               et le double-clic gardent leur geste. PersistSelection, avec la
+               clé Id, garde les cases d'une page à l'autre ; la case d'en-tête
+               coche toute la liste — filtrée d'abord par la recherche ou le
+               propriétaire, c'est le geste du lot. *@
+            <GridSelectionSettings Mode="Syncfusion.Blazor.Grids.SelectionMode.Row" Type="SelectionType.Multiple"
+                                   PersistSelection="true" />
             <GridColumns>
+                <GridColumn Type="ColumnType.CheckBox" Width="44" />
+                <GridColumn Field="@nameof(Livre.Id)" IsPrimaryKey="true" Visible="false" />
                 @* La petite couverture en tête de ligne, si elle est demandée (menu Colonnes). *@
                 <GridColumn HeaderText="" Width="62" AllowFiltering="false" AllowSorting="false" AllowResizing="false"
                             Visible="_vignetteListe">
@@ -204,6 +239,81 @@
     [Inject] private Exlibris.Services.IDialogueService Dialogues { get; set; } = default!;
     [Inject] private CouvertureDepot DepotCouvertures { get; set; } = default!;
     [Inject] private Services.Couvertures Couvertures { get; set; } = default!;
+    [Inject] private LivreDepot Livres { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    /// <summary>Les ouvrages cochés dans la liste, relus à chaque case cochée ou décochée.</summary>
+    private List<Livre> _selectionnes = [];
+
+    /// <summary>
+    /// La liste rechargée (recherche, filtre, enregistrement), les cases sont
+    /// décochées au rendu suivant. Sinon des ouvrages cochés puis masqués par
+    /// une nouvelle recherche resteraient dans le lot — modifiés sans être vus.
+    /// </summary>
+    private bool _viderSelection;
+
+    protected override async Task OnAfterRenderAsync(bool premierRendu)
+    {
+        if (!_viderSelection) return;
+        _viderSelection = false;
+
+        // ⚠️ Seulement s'il y a des cases cochées. Au premier affichage, la liste
+        // vient d'être chargée mais la grille n'est pas encore prête :
+        // ClearSelectionAsync y levait une exception, et une exception dans
+        // OnAfterRenderAsync ARRÊTE Blazor — plus une case, plus un bouton ne
+        // répondait (constaté le 12/11/2026). Sans cases cochées, il n'y a de
+        // toute façon rien à décocher.
+        if (_selectionnes.Count == 0 || _grille is null) return;
+
+        _selectionnes = [];
+        Vm.Selection = null;
+        await _grille.ClearSelectionAsync();
+        StateHasChanged();
+    }
+
+    private async Task RelireSelection()
+    {
+        _selectionnes = _grille is null ? [] : await _grille.GetSelectedRecordsAsync() ?? [];
+        // « Modifier » et « Supprimer » visent UN ouvrage : avec plusieurs
+        // cases cochées, ils se grisent, et c'est le lot qui prend la main.
+        Vm.Selection = _selectionnes.Count == 1 ? _selectionnes[0] : null;
+    }
+
+    /// <summary>
+    /// Série et/ou propriétaire pour tous les ouvrages cochés. Le dialogue reste
+    /// ouvert tant qu'il n'y a rien à appliquer, comme la fiche sans titre.
+    /// </summary>
+    private async Task ModifierEnLot()
+    {
+        var ids = _selectionnes.Select(l => l.Id).ToList();
+        if (ids.Count == 0) return;
+
+        var formulaire = new Formulaires.ModificationEnLotViewModel(
+            ids.Count,
+            Referentiels.Series().Select(s => s.Nom).ToList(),
+            Referentiels.Genres().Select(g => g.Nom).ToList(),
+            Referentiels.Classements().Select(c => c.Nom).ToList(),
+            Vm.ProprietairesActifs ? Referentiels.Proprietaires() : [],
+            Vm.ProprietairesActifs);
+
+        do
+        {
+            if (!await Dialogues.SaisirAsync($"Modifier {ids.Count} ouvrages",
+                    "Seuls les champs remplis sont appliqués ; les autres restent tels quels.",
+                    formulaire, "Appliquer"))
+                return;
+        }
+        while (!formulaire.Valide());
+
+        var modifies = Livres.ModifierEnLot(ids,
+            serieId: Referentiels.ResoudreSerie(formulaire.Serie),
+            proprietaireId: formulaire.Proprietaire,
+            genreId: Referentiels.ResoudreGenre(formulaire.Genre),
+            classementId: Referentiels.ResoudreClassement(formulaire.Classement));
+
+        Vm.Charger();   // décoche aussi les cases (voir _viderSelection)
+        Snackbar.Add($"{modifies} ouvrage{(modifies > 1 ? "s modifiés" : " modifié")}.", Severity.Success);
+    }
 
     // Réglages propres à la version Photino : le WPF ne les lit pas.
     private const string CleVignettes = "bibliotheque.affichage.vignettes";
@@ -215,6 +325,13 @@
     private bool _vignetteListe;
     private char? _lettre;
     private int _affichees = PasAffichage;
+
+    private string NomFiltre(long? id) => id switch
+    {
+        null => "Tous",
+        Proprietaire.Aucun => "Sans propriétaire",
+        _ => Vm.Proprietaires.FirstOrDefault(p => p.Id == id)?.Nom ?? string.Empty,
+    };
 
     private string? Url(Livre livre) => Couvertures.Url(DepotCouvertures.Chemin(livre.Couverture));
 
@@ -310,13 +427,14 @@
     {
         _lignes = null;
         _affichees = PasAffichage;
+        _viderSelection = true;
         // La liste rechargée, la ligne choisie n'y est plus — même effet que la
         // remise à zéro de l'ItemsSource dans le WPF, qui vidait la sélection.
         Vm.Selection = null;
     }
 
-    private void SurSelection(RowSelectEventArgs<Livre> e) => Vm.Selection = e.Data;
-    private void SurDeselection(RowDeselectEventArgs<Livre> e) => Vm.Selection = null;
+    private Task SurSelection(RowSelectEventArgs<Livre> e) => RelireSelection();
+    private Task SurDeselection(RowDeselectEventArgs<Livre> e) => RelireSelection();
 
     /// <summary>Le double-clic montre la fiche en consultation (voir <see cref="Ouvrir"/>).</summary>
     private async Task SurDoubleClic(RecordDoubleClickEventArgs<Livre> e)

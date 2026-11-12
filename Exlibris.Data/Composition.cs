@@ -54,6 +54,7 @@ public static class Composition
         services.AddSingleton(fabrique);
         services.AddSingleton<LivreDepot>();
         services.AddSingleton<ReferentielDepot>();
+        services.AddSingleton<TableauDeBordDepot>();
 
         // Un SEUL HttpClient pour toute la vie de l'application. En créer un par
         // recherche épuiserait les sockets — le défaut classique de HttpClient,
@@ -109,5 +110,10 @@ public static class Composition
         // large. L'oublier ferait créer un doublon à chaque notice, la nouvelle
         // clé ne retrouvant pas l'ancienne. Voir RecalculerClesEditeurs.
         referentiels.RecalculerClesEditeurs();
+
+        // Les « series:Astérix » versés dans les genres par Open Library avant
+        // la correction de sa lecture : la série va dans son champ, le faux
+        // genre disparaît. Voir ReparerEtiquettesOpenLibrary.
+        referentiels.ReparerEtiquettesOpenLibrary();
     }
 }

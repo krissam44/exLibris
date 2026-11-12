@@ -63,6 +63,7 @@ public partial class LivreFormulaireViewModel : ObservableObject
         Lu           = existant.Lu;
         Appreciation = existant.Appreciation;
         Commentaire  = existant.Commentaire;
+        Resume       = existant.Resume;
         Couverture   = existant.Couverture;
         CheminCouverture = _couvertures.Chemin(Couverture);
     }
@@ -117,6 +118,13 @@ public partial class LivreFormulaireViewModel : ObservableObject
     [ObservableProperty] private bool _lu;
     [ObservableProperty] private int? _appreciation;
     [ObservableProperty] private string _commentaire = string.Empty;
+
+    /// <summary>
+    /// Le résumé de l'ouvrage, tel que la quatrième de couverture le donne.
+    /// Rempli par la recherche en ligne quand la source en porte un (Lirevia,
+    /// Google Books) — la BnF et Open Library n'en rendent pas.
+    /// </summary>
+    [ObservableProperty] private string _resume = string.Empty;
 
     /// <summary>Message affiché sous le titre quand la saisie ne convient pas.</summary>
     [ObservableProperty] private string _erreur = string.Empty;
@@ -279,6 +287,8 @@ public partial class LivreFormulaireViewModel : ObservableObject
             if (Poser(notice.Auteurs, Auteurs, v => Auteurs = v)) remplis.Add("auteurs");
             if (Poser(notice.Editeur, Editeur, v => Editeur = v)) remplis.Add("éditeur");
             if (Poser(notice.Genre, Genre, v => Genre = v)) remplis.Add("genre");
+            if (Poser(notice.Serie, Serie, v => Serie = v)) remplis.Add("série");
+            if (Poser(notice.Resume, Resume, v => Resume = v)) remplis.Add("résumé");
 
             if (notice.Annee is { } annee && Annee is null)
             {
@@ -346,7 +356,6 @@ public partial class LivreFormulaireViewModel : ObservableObject
     {
         NbPages      = _existant?.NbPages,
         Format       = _existant?.Format ?? string.Empty,
-        Resume       = _existant?.Resume ?? string.Empty,
         DateLecture  = _existant?.DateLecture,
         SourceNotice = _existant?.SourceNotice ?? string.Empty,
         EnrichiLe    = _existant?.EnrichiLe,
@@ -360,17 +369,20 @@ public partial class LivreFormulaireViewModel : ObservableObject
         GenreId  = _referentiels.ResoudreGenre(Genre),
         ClassementId = _referentiels.ResoudreClassement(Classement),
 
-        // Rien n'est résolu quand le réglage est éteint. Sans cette garde,
-        // désactiver l'option laisserait la valeur d'une saisie précédente
-        // s'écrire encore — invisible à l'écran, donc impossible à corriger.
+        // Rien n'est résolu quand le réglage est éteint : le champ est caché,
+        // une valeur saisie ne peut donc pas venir de l'écran. Mais le
+        // propriétaire DÉJÀ porté par la fiche est conservé — éteindre l'option
+        // le temps d'une correction de titre ne doit pas effacer en silence le
+        // « Lucas » posé par l'import de son inventaire.
         ProprietaireId = ProprietairesActifs
             ? _referentiels.ResoudreProprietaire(Proprietaire)
-            : null,
+            : _existant?.ProprietaireId,
         Rangement    = Rangement.Trim(),
         Annee        = Annee,
         Lu           = Lu,
         Appreciation = Appreciation,
         Commentaire  = Commentaire,
+        Resume       = Resume.Trim(),
         Couverture   = Couverture,
     };
 

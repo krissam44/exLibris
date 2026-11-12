@@ -18,6 +18,62 @@
             ouvrages de ceux de votre conjoint ou de vos enfants. Laissez décoché si la bibliothèque
             n'a qu'un propriétaire : une case dont la réponse est toujours la même n'apprend rien.
         </div>
+
+        @* Les propriétaires, sous la case qui les fait exister : on les crée ici
+           AVANT l'import, où l'on choisit à qui appartient le lot. *@
+        @if (Vm.ProprietairesActifs)
+        {
+            <div class="retrait-case proprietaires mt-3">
+                <div class="d-flex align-center gap-3">
+                    <MudTextField T="string" Label="Nouveau propriétaire" Value="Vm.NouveauProprietaire"
+                                  ValueChanged="v => Vm.NouveauProprietaire = v ?? string.Empty"
+                                  Immediate="true" MaxLength="150" OnKeyDown="AjouterAuClavier"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Style="width: 260px" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.PersonAdd"
+                               OnClick="() => Vm.AjouterProprietaireCommand.Execute(null)">
+                        Ajouter
+                    </MudButton>
+                    <span class="aide">@Vm.MessageProprietaires</span>
+                </div>
+
+                @if (Vm.ListeProprietaires.Count == 0)
+                {
+                    <div class="aide mt-2">Aucun propriétaire pour l'instant.</div>
+                }
+                else
+                {
+                    <div class="liste-proprietaires mt-2">
+                        @foreach (var p in Vm.ListeProprietaires)
+                        {
+                            <div class="ligne-proprietaire" @key="p.Id">
+                                @if (ReferenceEquals(p, _enRenommage))
+                                {
+                                    <MudTextField T="string" Value="_nomRenomme" ValueChanged="v => _nomRenomme = v ?? string.Empty"
+                                                  Immediate="true" AutoFocus="true" MaxLength="150"
+                                                  OnKeyDown="e => RenommerAuClavier(e, p)"
+                                                  Variant="Variant.Outlined" Margin="Margin.Dense" Style="width: 220px" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Check" Size="Size.Small" Color="Color.Primary"
+                                                   title="Valider" OnClick="() => Renommer(p)" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                                                   title="Annuler" OnClick="() => _enRenommage = null" />
+                                }
+                                else
+                                {
+                                    <span class="nom-proprietaire">@p.Nom</span>
+                                    <span class="aide">@p.NbOuvrages ouvrage@(p.NbOuvrages > 1 ? "s" : "")</span>
+                                    <MudSpacer />
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Edit" Size="Size.Small"
+                                                   title="Renommer" OnClick="() => CommencerRenommage(p)" />
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Delete" Size="Size.Small" Color="Color.Error"
+                                                   title="Supprimer" OnClick="() => Vm.SupprimerProprietaireCommand.ExecuteAsync(p)" />
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
     </MudPaper>
 
     @* ================= Référentiels =================
@@ -83,6 +139,33 @@
 @code {
     private SfGrid<EntreeReferentiel>? _grille;
 
+    // ----- Renommage d'un propriétaire, sur place : un dialogue pour un seul
+    //       champ serait un détour.
+    private EntreeReferentiel? _enRenommage;
+    private string _nomRenomme = string.Empty;
+
+    private void CommencerRenommage(EntreeReferentiel p)
+    {
+        _enRenommage = p;
+        _nomRenomme = p.Nom;
+    }
+
+    private void Renommer(EntreeReferentiel p)
+    {
+        if (Vm.RenommerProprietaire(p, _nomRenomme)) _enRenommage = null;
+    }
+
+    private void RenommerAuClavier(KeyboardEventArgs e, EntreeReferentiel p)
+    {
+        if (e.Key == "Enter") Renommer(p);
+        else if (e.Key == "Escape") _enRenommage = null;
+    }
+
+    private void AjouterAuClavier(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") Vm.AjouterProprietaireCommand.Execute(null);
+    }
+
     /// <summary>Copie de la liste pour la grille — même raison que la Bibliothèque.</summary>
     private List<EntreeReferentiel>? _lignes;
     private List<EntreeReferentiel> Lignes => _lignes ??= [.. Vm.Entrees];
@@ -90,12 +173,16 @@
     protected override void OnInitialized()
     {
         Vm.Entrees.CollectionChanged += SurCollection;
+        Vm.ListeProprietaires.CollectionChanged += SurProprietaires;
         base.OnInitialized();
     }
 
     protected override void Arrivee() => Vm.Charger();
 
     private void SurCollection(object? sender, NotifyCollectionChangedEventArgs e) => _lignes = null;
+
+    /// <summary>La liste rechargée, l'entrée en cours de renommage n'y est plus.</summary>
+    private void SurProprietaires(object? sender, NotifyCollectionChangedEventArgs e) => _enRenommage = null;
 
     /// <summary>
     /// Changer de référentiel vide les filtres de colonne. Sans cela, un filtre
@@ -112,6 +199,7 @@
     public override void Dispose()
     {
         Vm.Entrees.CollectionChanged -= SurCollection;
+        Vm.ListeProprietaires.CollectionChanged -= SurProprietaires;
         base.Dispose();
     }
 }

@@ -1,0 +1,50 @@
+@inherits FormulaireBase<ModificationEnLotViewModel>
+@using Exlibris.Shared.Modeles
+
+@* La correction en lot : quatre champs, chacun facultatif. Le titre du dialogue
+   dit combien d'ouvrages seront touchés ; c'est la confirmation. *@
+
+<div class="formulaire-lot">
+    <div class="bloc">
+        <ChampListe Label="Série" Value="@Vm.Serie" ValueChanged="v => Vm.Serie = v" Elements="Vm.Series" />
+    </div>
+
+    @* Côte à côte, comme dans la fiche : c'est ensemble que la différence se
+       comprend (le genre dit ce qu'est le livre, la catégorie où vous le rangez). *@
+    <div class="deux-colonnes bloc">
+        <ChampListe Label="Genre" Value="@Vm.Genre" ValueChanged="v => Vm.Genre = v" Elements="Vm.Genres" />
+        <ChampListe Label="Ma catégorie" Value="@Vm.Classement" ValueChanged="v => Vm.Classement = v" Elements="Vm.Classements" />
+    </div>
+    <div class="aide bloc">
+        Un champ laissé vide ne change rien. Un nom nouveau est créé, comme dans la fiche.
+    </div>
+
+    @if (Vm.ProprietairesActifs)
+    {
+        <div class="bloc">
+            <MudSelect T="long?" Label="Propriétaire" Value="Vm.Proprietaire" ValueChanged="v => Vm.Proprietaire = v"
+                       ToStringFunc="NomChoix" Variant="Variant.Outlined" Margin="Margin.Dense" Style="width: 300px">
+                <MudSelectItem T="long?" Value="null">— Ne pas changer —</MudSelectItem>
+                @foreach (var p in Vm.Proprietaires)
+                {
+                    <MudSelectItem T="long?" Value="p.Id">@p.Nom</MudSelectItem>
+                }
+                <MudSelectItem T="long?" Value="Proprietaire.Aucun"><i>Sans propriétaire</i></MudSelectItem>
+            </MudSelect>
+        </div>
+    }
+
+    @if (Vm.Erreur.Length > 0)
+    {
+        <div class="message-erreur">@Vm.Erreur</div>
+    }
+</div>
+
+@code {
+    private string NomChoix(long? id) => id switch
+    {
+        null => "— Ne pas changer —",
+        Proprietaire.Aucun => "Sans propriétaire",
+        _ => Vm.Proprietaires.FirstOrDefault(p => p.Id == id)?.Nom ?? string.Empty,
+    };
+}
