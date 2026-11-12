@@ -372,6 +372,43 @@ html, body {
     gap: 12px;
 }
 
+/* Les pavés du haut : un dégradé chacun, texte blanc, icône au-dessus. */
+.paves {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.pave {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 116px;
+    padding: 12px 10px;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font: inherit;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .15);
+}
+
+.pave .icone-pave { font-size: 34px; width: 34px; height: 34px; opacity: .95; }
+.pave .valeur-pave { font-size: 24px; font-weight: 700; line-height: 1.2; }
+.pave .libelle-pave { font-size: 14px; opacity: .95; }
+
+.pave.cliquable { cursor: pointer; transition: transform .12s, box-shadow .12s; }
+.pave.cliquable:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, .25); }
+
+.pave-ouvrages      { background: linear-gradient(135deg, #5b6fd6, #7b4fb0); }
+.pave-series        { background: linear-gradient(135deg, #ff8a00, #e5395d); }
+.pave-lus           { background: linear-gradient(135deg, #12a58c, #3ccf7a); }
+.pave-proprietaires { background: linear-gradient(135deg, #e86bd8, #f0587a); }
+.pave-sans-isbn     { background: linear-gradient(135deg, #e0915a, #c9663c); }
+.pave-attente       { background: linear-gradient(135deg, #22427a, #2e5aa8); }
+
 .rangee-chiffres {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));

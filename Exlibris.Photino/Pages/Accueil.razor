@@ -18,20 +18,24 @@
 
 <div class="page-accueil">
 
-    @* ================= Les chiffres ================= *@
-    <MudPaper Elevation="1" Class="carte">
-        <div class="titre-carte">Votre bibliothèque</div>
-        <div class="rangee-chiffres mt-2">
-            <div class="chiffre"><div class="legende">Ouvrages</div><div class="valeur">@Vm.NbLivres.ToString("N0")</div></div>
-            <div class="chiffre"><div class="legende">Séries</div><div class="valeur">@Vm.NbSeries.ToString("N0")</div></div>
-            <div class="chiffre">
-                <div class="legende">Lus</div>
-                <div class="valeur">@_lus.ToString("N0")<span class="part">@Part(_lus, Vm.NbLivres)</span></div>
-            </div>
-            <div class="chiffre"><div class="legende">Sans ISBN</div><div class="valeur">@Vm.NbSansIsbn.ToString("N0")</div></div>
-            <div class="chiffre"><div class="legende">À compléter</div><div class="valeur">@Vm.NbNonEnrichis.ToString("N0")</div></div>
-        </div>
-    </MudPaper>
+    @* ================= Les chiffres =================
+       Des pavés colorés, une icône chacun (demande du 12/11/2026). Ceux qui
+       mènent quelque part sont des boutons : on y lit un chiffre, on y va. *@
+    <div class="paves">
+        @Pave("pave-ouvrages", Icons.Material.Filled.LibraryBooks, Vm.NbLivres.ToString("N0"), "Ouvrages", "bibliotheque")
+        @Pave("pave-series", Icons.Material.Filled.CollectionsBookmark, Vm.NbSeries.ToString("N0"), "Séries", "series")
+        @Pave("pave-lus", Icons.Material.Filled.AutoStories, $"{_lus:N0}{Part(_lus, Vm.NbLivres)}", "Lus", null)
+        @if (_proprietairesActifs)
+        {
+            @Pave("pave-proprietaires", Icons.Material.Filled.People, _nbProprietaires.ToString("N0"), "Propriétaires", "parametres")
+        }
+        @Pave("pave-sans-isbn", Icons.Material.Filled.QrCode2, Vm.NbSansIsbn.ToString("N0"), "Sans ISBN", null)
+        @* « À compléter » prêtait à confusion avec « Fiches à reprendre » : ce
+           sont les fiches importées que la recherche en ligne n'a pas encore
+           traitées (Inventaire, étape 2) — pas celles auxquelles il manque un
+           champ après coup. *@
+        @Pave("pave-attente", Icons.Material.Filled.CloudSync, Vm.NbNonEnrichis.ToString("N0"), "En attente de recherche en ligne", "inventaire")
+    </div>
 
     @* ================= Par propriétaire =================
        Une carte par personne ; un clic ouvre la Bibliothèque filtrée sur elle. *@
@@ -98,8 +102,8 @@
 
         @* ================= Fiches à reprendre ================= *@
         <MudPaper Elevation="1" Class="carte">
-            <div class="titre-carte">Fiches à reprendre</div>
-            <div class="aide">Parmi les fiches complétées, ce qui leur manque encore.</div>
+            <div class="titre-carte">Fiches incomplètes</div>
+            <div class="aide">Fiches déjà cherchées en ligne, auxquelles la source n'a pas tout donné : à compléter à la main.</div>
             <div class="rangee-chiffres petits mt-2">
                 <div class="chiffre"><div class="legende">Sans couverture</div><div class="valeur">@_reprendre.SansCouverture</div></div>
                 <div class="chiffre"><div class="legende">Sans auteur</div><div class="valeur">@_reprendre.SansAuteur</div></div>
@@ -140,6 +144,7 @@
 
 @code {
     private bool _proprietairesActifs;
+    private int _nbProprietaires;
     private int _lus;
     private List<TableauDeBordDepot.PartProprietaire> _parts = [];
     private List<TableauDeBordDepot.IdeeCadeau> _idees = [];
@@ -156,6 +161,7 @@
         _proprietairesActifs = Parametres.LireBooleen(ParametreDepot.ProprietairesActifs);
         _lus = Tableau.NombreLus();
         _parts = _proprietairesActifs ? Tableau.ParProprietaire() : [];
+        _nbProprietaires = _parts.Count(p => p.Id != Proprietaire.Aucun);
         _reprendre = Tableau.AReprendre();
         _derniers = Livres.DerniersAjouts(12);
 
@@ -178,7 +184,28 @@
     private void ChargerIdees() =>
         _idees = Tableau.IdeesCadeaux(_proprietairesActifs && _pour >= 0 ? _pour : null);
 
-    private static string Part(int n, int total) => total == 0 ? string.Empty : $" {100 * n / total} %";
+    private static string Part(int n, int total) => total == 0 ? string.Empty : $" ({100 * n / total} %)";
+
+    /// <summary>Un pavé : icône, chiffre, libellé ; un bouton s'il mène à une rubrique.</summary>
+    private RenderFragment Pave(string classe, string icone, string valeur, string libelle, string? adresse) => __builder =>
+    {
+        if (adresse is null)
+        {
+            <div class="pave @classe">
+                <MudIcon Icon="@icone" Class="icone-pave" />
+                <div class="valeur-pave">@valeur</div>
+                <div class="libelle-pave">@libelle</div>
+            </div>
+        }
+        else
+        {
+            <button type="button" class="pave cliquable @classe" title="Ouvrir" @onclick="() => Navigation.NavigateTo(adresse)">
+                <MudIcon Icon="@icone" Class="icone-pave" />
+                <div class="valeur-pave">@valeur</div>
+                <div class="libelle-pave">@libelle</div>
+            </button>
+        }
+    };
 
     /// <summary>La Bibliothèque, filtrée sur ce propriétaire.</summary>
     private void VoirOuvrages(long id)
